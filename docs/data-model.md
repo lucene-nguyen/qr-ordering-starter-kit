@@ -13,7 +13,7 @@ Conventions: `uuid` primary keys (`gen_random_uuid()`), `timestamptz` in UTC, mo
 | 1 | `categories`, `menu_items`, `tables` (migration `20261028000000_phase1_menu.sql`) |
 | 2 | `menu_item_sizes`, `menu_item_addons`, `orders`, `order_items`, function `place_order` (migration `20261028100000_phase2_orders.sql`) |
 | 3 | `staff_profiles`, `private.staff_role()`, staff RLS + column grants, realtime publication (`20261028200000_phase3_staff_kitchen.sql`, `20261028201000_private_staff_role.sql`; see ADR 0002) |
-| 4 | `table_sessions`, `session_guests`, `cart_items` |
+| 4 | `table_sessions` (+`cart_version`, `last_activity_at`), `session_guests`, `cart_items` (one row per guest per exact choice, `nulls not distinct`), `orders.session_id` FK + `placed_by`; functions `join_table`, `cart_add`, `cart_change`, `place_session_order`, `private.price_line` (`20261028300000_phase4_shared_cart.sql`, `20261028301000_cart_add_qty_check.sql`). No `version` column: quantity changes are atomic deltas. |
 | 5 | `payments`, `restaurant_settings`; `orders.session_id` becomes required |
 | 6 | views `daily_revenue`, `item_sales` |
 
