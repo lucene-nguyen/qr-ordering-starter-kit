@@ -87,9 +87,9 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 **Learning goals:** state synchronisation across clients (Realtime + DB as source of truth); concurrency and conflict resolution; session-scoped data.
 
 **Acceptance criteria**
-- [ ] Two phones at the same table see the same cart within ~2 seconds.
-- [ ] Simultaneous quantity changes do not corrupt the cart.
-- [ ] Follow-up orders attach to the same table session.
+- [x] Two phones at the same table see the same cart within ~2 seconds.
+- [x] Simultaneous quantity changes do not corrupt the cart.
+- [x] Follow-up orders attach to the same table session.
 
 **Prototype screens:** 00 Join table (name), 03 Cart ("Added by", shared banner), 04 Order status (rounds).
 
