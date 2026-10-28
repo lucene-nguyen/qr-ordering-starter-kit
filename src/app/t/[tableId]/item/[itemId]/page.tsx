@@ -4,11 +4,12 @@ import { Icon } from "@/lib/icons";
 import { formatVnd } from "@/lib/money";
 import { DishPhoto } from "@/modules/menu/components/dish-row";
 import { getMenuItem } from "@/modules/menu/queries";
+import { ItemOrderForm } from "@/modules/orders/components/item-order-form";
 import { getTableByCode } from "@/modules/table-session/queries";
 
 type Props = { params: Promise<{ tableId: string; itemId: string }> };
 
-// 02 · Item, view only. Sizes, add-ons, note and "Add to cart" come with the cart in Phase 2.
+// 02 · Item: details from the server, options and "Add to cart" in a Client Component.
 export default async function ItemPage({ params }: Props) {
   const { tableId, itemId } = await params;
   const [table, item] = await Promise.all([getTableByCode(tableId), getMenuItem(itemId)]);
@@ -16,7 +17,7 @@ export default async function ItemPage({ params }: Props) {
   if (!item) redirect(`/t/${table.code}`); // stale link to a removed dish: back to the menu
 
   return (
-    <main className="mx-auto min-h-dvh max-w-[480px]">
+    <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
       <div className="relative">
         <DishPhoto size={200} className="h-[280px] w-full" />
         <Link
@@ -37,6 +38,7 @@ export default async function ItemPage({ params }: Props) {
           </span>
         )}
       </div>
+      <ItemOrderForm tableCode={table.code} item={item} />
     </main>
   );
 }

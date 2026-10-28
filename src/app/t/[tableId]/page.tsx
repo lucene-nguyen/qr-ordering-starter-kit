@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Icon } from "@/lib/icons";
 import { DishRow } from "@/modules/menu/components/dish-row";
 import { getMenu } from "@/modules/menu/queries";
+import { CartBar } from "@/modules/orders/components/cart-bar";
 import { getTableByCode } from "@/modules/table-session/queries";
 
 type Props = {
@@ -25,7 +26,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
   const popular = menu.flatMap((c) => c.menu_items.filter((i) => i.is_popular));
 
   return (
-    <main className="mx-auto min-h-dvh max-w-[480px] pb-8">
+    <main className="mx-auto min-h-dvh max-w-[480px]">
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -96,6 +97,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
           ))}
         </>
       )}
+      <CartBar tableCode={table.code} />
     </main>
   );
 }

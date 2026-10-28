@@ -1,7 +1,6 @@
+import { z } from "zod";
 import { createSupabaseClient } from "@/lib/supabase/server";
-import type { MenuCategory, MenuItem } from "./types";
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import type { MenuCategory, MenuItemWithOptions } from "./types";
 
 /** "Phở bò" → "pho bo", so guests can search without typing Vietnamese accents. */
 const fold = (s: string) =>
@@ -27,12 +26,15 @@ export async function getMenu(search = ""): Promise<MenuCategory[]> {
     .filter((c) => c.menu_items.length > 0);
 }
 
-export async function getMenuItem(id: string): Promise<MenuItem | null> {
-  if (!UUID.test(id)) return null; // Postgres would reject a malformed uuid with an error
+/** A dish with its sizes and add-ons, in menu order. */
+export async function getMenuItem(id: string): Promise<MenuItemWithOptions | null> {
+  if (!z.uuid().safeParse(id).success) return null; // Postgres would reject a malformed uuid with an error
   const { data, error } = await createSupabaseClient()
     .from("menu_items")
-    .select("*")
+    .select("*, menu_item_sizes(*), menu_item_addons(*)")
     .eq("id", id)
+    .order("sort", { referencedTable: "menu_item_sizes" })
+    .order("sort", { referencedTable: "menu_item_addons" })
     .maybeSingle();
   if (error) throw error;
   return data;

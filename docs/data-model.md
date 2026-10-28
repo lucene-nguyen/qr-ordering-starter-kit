@@ -11,7 +11,7 @@ Conventions: `uuid` primary keys (`gen_random_uuid()`), `timestamptz` in UTC, mo
 | Phase | Tables |
 |---|---|
 | 1 | `categories`, `menu_items`, `tables` (migration `20261028000000_phase1_menu.sql`) |
-| 2 | `menu_item_sizes`, `menu_item_addons`, `orders`, `order_items` |
+| 2 | `menu_item_sizes`, `menu_item_addons`, `orders`, `order_items`, function `place_order` (migration `20261028100000_phase2_orders.sql`) |
 | 4 | `table_sessions`, `session_guests`, `cart_items` |
 | 5 | `payments`, `staff_profiles`, `restaurant_settings`; `orders.session_id` becomes required |
 | 6 | views `daily_revenue`, `item_sales` |

@@ -3,7 +3,7 @@ import { Icon } from "@/lib/icons";
 import { formatVnd } from "@/lib/money";
 import type { MenuItem } from "../types";
 
-/** Placeholder until dish photos can be uploaded (O1b); `image_url` is not rendered yet. */
+/** Placeholder until dish photos can be uploaded (O1b); `image_url` is not rendered yet. Also used by the cart. */
 export function DishPhoto({ size, className = "size-22 rounded-md" }: { size: number; className?: string }) {
   return (
     <div className={`grid shrink-0 place-items-center bg-surface-brand text-brand ${className}`}>

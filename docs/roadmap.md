@@ -49,10 +49,10 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 **Learning goals:** Server Action design and input validation (Zod); idempotency and retries; snapshotting price at order time.
 
 **Acceptance criteria**
-- [ ] Tapping "Submit" several times creates exactly one order.
-- [ ] Order totals are calculated server-side.
-- [ ] Notes are saved per item.
-- [ ] A network failure shows a retry option without losing the cart.
+- [x] Tapping "Submit" several times creates exactly one order.
+- [x] Order totals are calculated server-side.
+- [x] Notes are saved per item.
+- [x] A network failure shows a retry option without losing the cart.
 
 **Prototype screens:** 02 Item (sizes, add-ons, note, qty), 03 Cart, 03b Order failed, 04 Order status (received state).
 

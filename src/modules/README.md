@@ -23,6 +23,6 @@ src/modules/<module>/
 | `reports` | revenue aggregates, best sellers, CSV export | 6 |
 
 Rules
-- A module may import another module's **types and queries**, never its internals.
+- A module may import another module's **types, queries and presentational components** (e.g. `DishPhoto`), never its internals (actions, state).
 - Writes go through Server Actions; never trust prices or totals sent by the client.
 - Money is an integer number of VND (`number`, no decimals).
