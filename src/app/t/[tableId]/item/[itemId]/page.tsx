@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Icon } from "@/lib/icons";
+import { RefreshOnTableUpdate } from "@/lib/realtime-refresh";
 import { formatVnd } from "@/lib/money";
 import { DishPhoto } from "@/modules/menu/components/dish-row";
 import { getMenuItem } from "@/modules/menu/queries";
@@ -18,6 +19,7 @@ export default async function ItemPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
+      <RefreshOnTableUpdate table="menu_items" />
       <div className="relative">
         <DishPhoto size={200} className="h-[280px] w-full" />
         <Link

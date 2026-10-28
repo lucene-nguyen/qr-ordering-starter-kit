@@ -7,6 +7,7 @@ export type Staff = { userId: string; displayName: string; role: StaffRole };
 /** Who may do what. Pages and Server Actions check these; RLS checks again in the database. */
 export const CAN = {
   runKitchen: ["owner", "cashier", "kitchen"],
+  markSoldOut: ["owner", "cashier", "kitchen"],
   manageSettings: ["owner"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 

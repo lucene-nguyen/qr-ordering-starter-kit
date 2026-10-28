@@ -21,6 +21,18 @@ const paths = {
     </>
   ),
   minus: <path d="M5 12h14" />,
+  x: (
+    <>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
+    </>
+  ),
+  ban: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m4.9 4.9 14.2 14.2" />
+    </>
+  ),
   check: <path d="M20 6 9 17l-5-5" />,
   bag: (
     <>

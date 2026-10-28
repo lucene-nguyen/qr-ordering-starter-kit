@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Icon } from "@/lib/icons";
+import { RefreshOnTableUpdate } from "@/lib/realtime-refresh";
 import { DishRow } from "@/modules/menu/components/dish-row";
 import { getMenu } from "@/modules/menu/queries";
 import { CartBar } from "@/modules/orders/components/cart-bar";
@@ -27,6 +28,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
 
   return (
     <main className="mx-auto min-h-dvh max-w-[480px]">
+      <RefreshOnTableUpdate table="menu_items" />
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">

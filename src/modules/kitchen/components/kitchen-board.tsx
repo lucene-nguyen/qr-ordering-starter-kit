@@ -3,9 +3,11 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Icon } from "@/lib/icons";
 import { createBrowserAuthClient } from "@/lib/supabase/auth-browser";
+import { setDishAvailability } from "@/modules/menu/actions";
 import { SignOutButton } from "@/modules/staff/components/sign-out-button";
 import { advanceOrder } from "../actions";
 import { fetchOpenOrders, fetchOrder, OPEN_STATUSES, type KitchenOrder } from "../queries";
+import { SoldOutDrawer, type DishAvailability } from "./sold-out-drawer";
 
 type Conn = "on" | "off" | "back";
 
@@ -30,9 +32,19 @@ const subscribeTick = (cb: () => void) => {
 const useNow = () =>
   useSyncExternalStore(subscribeTick, () => Math.floor(Date.now() / TICK) * TICK, () => null);
 
-/** K1 · Kitchen display and K1b · offline/resync. */
-export function KitchenBoard({ initialOrders, timeZone }: { initialOrders: KitchenOrder[]; timeZone: string }) {
+/** K1 · Kitchen display, K1b · offline/resync, and the sold-out drawer. */
+export function KitchenBoard({
+  initialOrders,
+  initialDishes,
+  timeZone,
+}: {
+  initialOrders: KitchenOrder[];
+  initialDishes: DishAvailability[];
+  timeZone: string;
+}) {
   const [orders, setOrders] = useState(() => byId(initialOrders));
+  const [dishes, setDishes] = useState(initialDishes);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [conn, setConn] = useState<Conn>("on");
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const now = useNow();
@@ -74,6 +86,10 @@ export function KitchenBoard({ initialOrders, timeZone }: { initialOrders: Kitch
         const order = await fetchOrder(supabase, id).catch(() => null); // with its items
         if (order) upsert(order);
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (payload) => {
+        const { id, is_available } = payload.new as DishAvailability; // sold-out toggled on another screen
+        setDishes((list) => list.map((d) => (d.id === id ? { ...d, is_available } : d)));
+      })
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
           void resync(); // first join and every reconnect: catch up on anything missed
@@ -107,6 +123,21 @@ export function KitchenBoard({ initialOrders, timeZone }: { initialOrders: Kitch
     return () => clearTimeout(t);
   }, [notice]);
 
+  const toggleDish = async (dish: DishAvailability) => {
+    const set = (is_available: boolean) =>
+      setDishes((list) => list.map((d) => (d.id === dish.id ? { ...d, is_available } : d)));
+    set(!dish.is_available); // optimistic; undone below if the server says no
+    const result = await setDishAvailability(dish.id, !dish.is_available).catch(() => ({
+      ok: false as const,
+      message: "Couldn't reach the server. Check the connection.",
+    }));
+    if (!result.ok) {
+      set(dish.is_available);
+      setNotice(result.message);
+    }
+  };
+  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
+
   const list = [...orders.values()].sort((a, b) => a.created_at.localeCompare(b.created_at));
   const offline = conn === "off";
 
@@ -122,6 +153,9 @@ export function KitchenBoard({ initialOrders, timeZone }: { initialOrders: Kitch
           <span className={`size-2 rounded-full ${offline ? "bg-brand" : "bg-success"}`} />
           {offline ? "Reconnecting…" : "Connected"}
         </span>
+        <button type="button" onClick={() => setDrawerOpen(true)} className={ghost}>
+          <Icon name="ban" size={16} /> Mark sold out
+        </button>
         <span className="text-heading flex items-center gap-2 tabular-nums">
           <Icon name="clock" size={16} /> {now && hhmm(now)}
         </span>
@@ -182,6 +216,8 @@ export function KitchenBoard({ initialOrders, timeZone }: { initialOrders: Kitch
           );
         })}
       </div>
+
+      {drawerOpen && <SoldOutDrawer dishes={dishes} onToggle={toggleDish} onClose={closeDrawer} />}
 
       {notice && (
         <div role="status" className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-md bg-dark px-4 py-3 text-white shadow-lg">
