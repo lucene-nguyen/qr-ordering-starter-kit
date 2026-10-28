@@ -15,7 +15,8 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - [ ] End-to-end flow works: scan QR → order → kitchen sees it instantly → pay via VietQR → owner sees revenue.
 - [ ] Deployed on Vercel with near-zero running cost (domain only).
 - [ ] Each phase has notes on the lessons learned (`docs/lessons/`).
-- [ ] Separate Supabase projects for dev and prod before real guests use the app (today both use `tabletap`).
+- [x] Separate Supabase projects for dev (`tabletap-dev`) and prod (`tabletap`); migrations go to dev first, prod only after approval – see `supabase/README.md`.
+- [ ] Before real guests: clean demo data from prod, enter the real menu and bank account, turn off public sign-ups.
 
 ---
 
@@ -95,6 +96,9 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 
 ## Phase 5 – Anti-fake orders and payment · LEARNING-99
 
+> Decided in [ADR 0003](decisions/0003-session-pin-and-manual-payments.md): a 4-digit session PIN
+> (printed QR unchanged) instead of a rotating token in the URL, and cashier-confirmed payments.
+
 **Scope**
 - Table sessions opened by staff; ordering only allowed while a session is active.
 - Short-lived session token in the QR/URL (rotates when a session closes).
@@ -130,3 +134,7 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - [ ] Only the owner role can view reports.
 
 **Prototype screens:** O2 Reports, O2b Reports · cashier (no access), O1 Menu (sold today).
+
+## Later (not scheduled)
+
+- Bank webhook to confirm VietQR transfers automatically (Phase 5 uses cashier confirmation).

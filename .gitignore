@@ -24,10 +24,12 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (keep .env.example)
+# env files (keep the *.example templates)
 .env*
 .env.local
+.env.test.local
 !.env.example
+!.env.test.example
 
 # vercel
 .vercel
@@ -42,3 +44,9 @@ supabase/.branches
 
 # playwright MCP screenshots/logs
 .playwright-mcp
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

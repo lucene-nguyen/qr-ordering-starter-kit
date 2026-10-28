@@ -28,6 +28,8 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
 export async function signOut() {
   const supabase = await createAuthClient();
-  await supabase.auth.signOut();
+  // Only this device: the default scope is "global", which would also sign out every other
+  // tablet sharing the account (e.g. all kitchen screens on bep@).
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/staff/sign-in");
 }
