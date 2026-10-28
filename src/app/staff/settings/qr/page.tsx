@@ -1,14 +1,26 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import { NoAccess } from "@/modules/staff/components/no-access";
+import { SignOutButton } from "@/modules/staff/components/sign-out-button";
+import { allowed, CAN, requireStaff } from "@/modules/staff/queries";
 import { PrintButton } from "@/modules/table-session/components/print-button";
 import { TableQrCard } from "@/modules/table-session/components/table-qr-card";
 import { listTables, tableUrl } from "@/modules/table-session/queries";
 
 export const metadata: Metadata = { title: "Tables & QR · TableTap" };
 
-// O4 · Settings › Tables & QR.
-// shortcut: no sign-in yet – the page only shows public table links; it becomes owner-only in Phase 5.
+// O4 · Settings › Tables & QR. Owner only.
 export default async function TablesQrPage() {
+  const staff = await requireStaff();
+  if (!allowed(staff, CAN.manageSettings)) {
+    return (
+      <NoAccess
+        title="Settings are for the owner"
+        description="Bank details and table QR codes can only be changed by the owner."
+      />
+    );
+  }
+
   // QR links use the domain this page is served from (localhost, preview or production), so there
   // is no base-URL setting to get wrong. Reading headers also makes the page render per request.
   const h = await headers();
@@ -23,6 +35,7 @@ export default async function TablesQrPage() {
           <p className="text-muted">Each table has its own QR. Print the cards once.</p>
         </div>
         <PrintButton />
+        <SignOutButton className="h-[42px] rounded-md border border-border px-4 font-semibold hover:bg-surface" />
       </header>
       <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3.5 print:grid-cols-3">
         {tables.map((t) => (

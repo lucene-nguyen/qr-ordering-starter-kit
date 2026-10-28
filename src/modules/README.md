@@ -21,6 +21,7 @@ src/modules/<module>/
 | `kitchen` | kitchen display, realtime subscription, status transitions | 3 |
 | `payments` | bill, split, VietQR payload, payment records, closing a table | 5 |
 | `reports` | revenue aggregates, best sellers, CSV export | 6 |
+| `staff` | staff sign-in, roles (`requireStaff`, `CAN`), no-access screen | 3 (ADR 0002), 5 |
 
 Rules
 - A module may import another module's **types, queries and presentational components** (e.g. `DishPhoto`), never its internals (actions, state).
