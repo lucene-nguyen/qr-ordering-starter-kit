@@ -20,6 +20,22 @@ const COLUMNS = [
 const LATE_MINUTES = 10;
 const ghost = "flex items-center gap-2 rounded-sm border border-white/30 px-3.5 py-2 text-[13px] font-medium text-white hover:bg-white/10";
 
+const FRESH_MS = 5000;
+
+/** Two short tones made with WebAudio – no sound file to load. */
+function chime(ctx: AudioContext, volume = 0.25) {
+  [880, 1175].forEach((hz, i) => {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.frequency.value = hz;
+    gain.gain.value = volume;
+    osc.connect(gain).connect(ctx.destination);
+    const at = ctx.currentTime + i * 0.18;
+    osc.start(at);
+    osc.stop(at + 0.14);
+  });
+}
+
 const isOpen = (o: KitchenOrder) => OPEN_STATUSES.includes(o.status);
 const byId = (list: KitchenOrder[]) => new Map(list.map((o) => [o.id, o]));
 
@@ -49,6 +65,9 @@ export function KitchenBoard({
   const [syncedAt, setSyncedAt] = useState<number | null>(null);
   const now = useNow();
   const [notice, setNotice] = useState<string | null>(null);
+  const [shiftStarted, setShiftStarted] = useState(false);
+  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
+  const audioRef = useRef<AudioContext | null>(null);
   const resyncRef = useRef<() => Promise<boolean>>(async () => false);
   const hhmm = (ms: number) =>
     new Intl.DateTimeFormat("en-GB", { timeZone, hour: "2-digit", minute: "2-digit" }).format(ms);
@@ -61,6 +80,22 @@ export function KitchenBoard({
       return next;
     });
   }, []);
+
+  // New ticket: sound (once the shift has unlocked audio) and a highlight for a few seconds.
+  const announce = useCallback((id: string) => {
+    if (audioRef.current) chime(audioRef.current);
+    setFresh((s) => new Set(s).add(id));
+    setTimeout(() => setFresh((s) => new Set([...s].filter((x) => x !== id))), FRESH_MS);
+  }, []);
+
+  // Browsers only allow sound after a tap on the page: "Start shift" is that tap.
+  const startShift = () => {
+    const ctx = new AudioContext();
+    void ctx.resume();
+    chime(ctx, 0.02); // near-silent, proves audio works without startling anyone
+    audioRef.current = ctx;
+    setShiftStarted(true);
+  };
 
   useEffect(() => {
     const supabase = createBrowserAuthClient();
@@ -84,7 +119,9 @@ export function KitchenBoard({
         const id = (payload.new as { id?: string }).id;
         if (!id) return;
         const order = await fetchOrder(supabase, id).catch(() => null); // with its items
-        if (order) upsert(order);
+        if (!order) return;
+        upsert(order);
+        if (payload.eventType === "INSERT" && isOpen(order)) announce(order.id);
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (payload) => {
         const { id, is_available } = payload.new as DishAvailability; // sold-out toggled on another screen
@@ -109,7 +146,7 @@ export function KitchenBoard({
       window.removeEventListener("online", online);
       void supabase.removeChannel(channel);
     };
-  }, [upsert]);
+  }, [upsert, announce]);
 
   useEffect(() => {
     if (conn !== "back") return;
@@ -203,6 +240,7 @@ export function KitchenBoard({
                     order={o}
                     action={col.action}
                     now={now}
+                    fresh={fresh.has(o.id)}
                     disabled={offline}
                     onAdvanced={(status) => upsert({ ...o, status })}
                     onError={(message) => {
@@ -216,6 +254,21 @@ export function KitchenBoard({
           );
         })}
       </div>
+
+      {!shiftStarted && (
+        <div className="fixed inset-0 z-30 grid place-items-center bg-dark/80 p-6">
+          <div role="dialog" aria-modal="true" aria-labelledby="shift-title" className="flex max-w-sm flex-col items-center gap-4 rounded-lg bg-bg p-8 text-center">
+            <span className="grid size-14 place-items-center rounded-full bg-brand text-white">
+              <Icon name="bell" size={26} />
+            </span>
+            <h2 id="shift-title" className="text-display">Ready for service?</h2>
+            <p className="text-muted">Tap Start shift so this tablet can play a sound when a new order arrives.</p>
+            <button type="button" autoFocus onClick={startShift} className="h-[52px] w-full rounded-md bg-brand font-semibold text-white hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              Start shift
+            </button>
+          </div>
+        </div>
+      )}
 
       {drawerOpen && <SoldOutDrawer dishes={dishes} onToggle={toggleDish} onClose={closeDrawer} />}
 
@@ -232,6 +285,7 @@ function Ticket({
   order,
   action,
   now,
+  fresh,
   disabled,
   onAdvanced,
   onError,
@@ -239,6 +293,7 @@ function Ticket({
   order: KitchenOrder;
   action: string;
   now: number | null;
+  fresh: boolean;
   disabled: boolean;
   onAdvanced: (status: KitchenOrder["status"]) => void;
   onError: (message: string) => void;
@@ -263,7 +318,11 @@ function Ticket({
   }
 
   return (
-    <article className={`overflow-hidden rounded-md bg-bg ${late ? "border-2 border-brand" : "border border-border"}`}>
+    <article
+      className={`overflow-hidden rounded-md bg-bg transition-shadow ${late ? "border-2 border-brand" : "border border-border"} ${
+        fresh ? "ring-4 ring-brand/40" : ""
+      }`}
+    >
       <div className="flex items-center gap-2 px-4 py-3">
         <span className="text-title">{order.tables.label}</span>
         <span className="text-caption text-muted">#{order.order_no}</span>
