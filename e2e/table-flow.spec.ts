@@ -45,6 +45,14 @@ async function orderIcedTea(page: Page, code: string) {
   await page.waitForURL(`**/t/${code}/order/**`);
 }
 
+/** Adds `qty` of a dish in its default (first) size to the shared cart. */
+async function addDish(page: Page, code: string, dish: string, qty: number) {
+  await page.getByRole("link", { name: new RegExp(dish) }).first().click();
+  for (let i = 1; i < qty; i++) await page.getByRole("button", { name: "Increase quantity" }).click();
+  await page.getByRole("button", { name: /Add to cart/ }).click();
+  await page.waitForURL(`**/t/${code}`);
+}
+
 /** Owner closes the table whatever its state: already closed, open and settled, or owing (force). */
 async function forceClose(page: Page, code: string, reason: string) {
   await page.goto(`/staff/tables?table=${code}`);
@@ -127,5 +135,55 @@ test.describe("table session flow", () => {
     await shot(cashier, "S1-tables-live");
 
     await forceClose(owner, "11", "E2E cleanup");
+  });
+
+  test("(c) split 3 ways → 83.000đ VietQR → cashier confirms on C2 → the guest sees Paid (no reload)", async ({ browser }) => {
+    const cashier = await staff(browser, "cashier");
+    const owner = await staff(browser, "owner");
+    const lan = await guest(browser);
+
+    await forceClose(owner, "09", "E2E clean start");
+    const pin = await openTable(cashier, "09");
+    await join(lan, "09", "Lan", pin);
+    await addDish(lan, "09", "Phở bò tái", 2); // 2 × 65.000
+    await addDish(lan, "09", "Bún chả Hà Nội", 2); // 2 × 60.000 → bill 250.000
+    await lan.goto("/t/09/cart");
+    await lan.getByRole("button", { name: /Place order/ }).click();
+    await lan.waitForURL("**/t/09/order/**");
+
+    // 05 · split equally between 3: 250.000 / 3 → 83.000 (rounded down to 1.000đ)
+    await lan.getByRole("link", { name: "Request bill" }).click();
+    await lan.getByRole("link", { name: "Split equally" }).click();
+    await lan.getByRole("link", { name: "More people" }).click();
+    await expect(lan.getByRole("main")).toContainText("Your share (1 of 3)");
+    await expect(lan.getByRole("main")).toContainText("83.000đ");
+    await lan.getByRole("button", { name: "Show payment QR" }).click();
+    await lan.waitForURL(/\/t\/09\/pay\/[0-9a-f-]{36}$/);
+    await expect(lan.getByRole("img", { name: "VietQR code for 83.000đ" })).toBeVisible(); // amount from payments.amount
+    await expect(lan.getByRole("main")).toContainText(/TBL09 [A-Z]\d+/); // transfer note from payments.reference
+    await shot(lan, "05-pay-qr");
+
+    // 05b · waiting for the cashier
+    await lan.getByRole("link", { name: "I've completed the transfer" }).click();
+    await expect(lan.getByRole("heading", { name: "We haven't received it yet" })).toBeVisible();
+    await shot(lan, "05b-pending");
+    await lan.waitForTimeout(1500); // let the guest's Realtime channel join
+
+    // C2 · the cashier confirms the transfer
+    await cashier.goto("/staff/checkout?table=09");
+    const payments = cashier.getByRole("region", { name: "Payments" });
+    await expect(payments).toContainText("Lan");
+    await expect(payments).toContainText("83.000đ");
+    await expect(cashier.getByRole("button", { name: "Close table" })).toBeDisabled(); // 167.000đ still open
+    await shot(cashier, "C2-checkout");
+    await payments.getByRole("button", { name: "Confirm received" }).click();
+    await expect(payments).toContainText("Paid");
+
+    // 06 · same guest page, never reloaded
+    await expect(lan.getByRole("heading", { name: "Payment received" })).toBeVisible({ timeout: 10_000 });
+    await expect(lan.getByRole("main")).toContainText("83.000đ");
+    await shot(lan, "06-paid");
+
+    await forceClose(owner, "09", "E2E cleanup: the other shares were never paid");
   });
 });

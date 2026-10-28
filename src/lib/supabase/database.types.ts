@@ -583,6 +583,16 @@ export type Database = {
         }
         Returns: number
       }
+      guest_payment_qr: {
+        Args: { p_guest: string; p_payment: string; p_table_code: string }
+        Returns: {
+          account_name: string
+          account_no: string
+          amount: number
+          bin: string
+          reference: string
+        }[]
+      }
       join_table: {
         Args: {
           p_ip: string

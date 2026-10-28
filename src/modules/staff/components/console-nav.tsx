@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/lib/icons";
 
 // `section`: the URL prefix that counts as "this page" (Settings has several tabs later).
-type Item = { href: string; section: string; label: string; icon: "grid" | "flame" | "settings"; locked: boolean };
+type Item = { href: string; section: string; label: string; icon: "grid" | "flame" | "receipt" | "settings"; locked: boolean };
 
 /** Sidebar links; a lock marks pages this role can't use (they open the no-access screen). */
 export function ConsoleNav({ items }: { items: Item[] }) {

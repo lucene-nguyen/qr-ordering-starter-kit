@@ -12,10 +12,16 @@ const GUEST_COOKIE = "tt_guest";
 export type Guest = { guestId: string; displayName: string; sessionId: string };
 type Table = { id: string; code: string };
 
+/** The raw guest id from this phone's cookie (server only – it never goes to the browser). */
+export async function guestIdFromCookie(): Promise<string | null> {
+  const id = (await cookies()).get(GUEST_COOKIE)?.value;
+  return id && z.uuid().safeParse(id).success ? id : null;
+}
+
 /** The guest of this table's open session, or null (not joined, other table, or staff closed it). */
 export async function getGuest(table: Table): Promise<Guest | null> {
-  const id = (await cookies()).get(GUEST_COOKIE)?.value;
-  if (!id || !z.uuid().safeParse(id).success) return null;
+  const id = await guestIdFromCookie();
+  if (!id) return null;
   const { data, error } = await createAdminClient()
     .from("session_guests")
     .select("id, display_name, table_sessions!inner(id, table_id, status)")

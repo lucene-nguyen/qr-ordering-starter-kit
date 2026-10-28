@@ -69,5 +69,6 @@ export async function closeSession(sessionId: string, reason: string): Promise<S
   // Guests' phones re-read and land on "paid" / "table isn't open" (ADR 0003, D).
   await broadcast(`session:${parsed.data.sessionId}`, "closed");
   revalidatePath("/staff/tables");
+  revalidatePath("/staff/checkout");
   return { ok: true };
 }

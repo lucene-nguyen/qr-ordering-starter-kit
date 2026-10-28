@@ -12,6 +12,7 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
   const items = [
     { href: "/staff/tables", section: "/staff/tables", label: "Tables", icon: "grid", locked: !allowed(staff, CAN.manageTables) },
     { href: "/staff/kitchen", section: "/staff/kitchen", label: "Kitchen", icon: "flame", locked: !allowed(staff, CAN.runKitchen) },
+    { href: "/staff/checkout", section: "/staff/checkout", label: "Checkout", icon: "receipt", locked: !allowed(staff, CAN.manageTables) },
     { href: "/staff/settings/qr", section: "/staff/settings", label: "Settings", icon: "settings", locked: !allowed(staff, CAN.manageSettings) },
   ] as const;
 

@@ -1,7 +1,7 @@
 -- Phase 5 (LEARNING-99) database tests – run on DEV only (SQL Editor of tabletap-dev).
 -- Everything runs in one DO block and ends with `raise exception 'ALL_OK'`, which rolls the whole
 -- block back: seeing "ERROR: ALL_OK" means every assert passed and nothing was left behind.
--- Any other error names the failing check (A1…G4).
+-- Any other error names the failing check (A1…H6).
 -- Needs: seed.sql (menu, tables) and the staff accounts hoa@ (owner), an@ (cashier), bep@ (kitchen),
 -- and tables 03, 06, 07, 08 without an open session.
 -- Staff are simulated with `set local role authenticated` + their JWT claims, so RLS, column grants
@@ -95,6 +95,25 @@ begin
   assert (p1->>'reference') = 'TBL07 ' || replace((select order_no from orders where session_id = s07.id), '-', ''), 'D3 transfer note TBL07 A....';
   assert public.request_payment('07', g1, 'full', null)->>'id' = p1->>'id', 'D4 asking again returns the same pending request';
 
+  -- H. guest_payment_qr: what the guest's phone may read (as anon, like the server calls it)
+  execute 'set local role anon';
+  assert (select q.amount = 83000 and q.reference = p1->>'reference' and q.bin ~ '^[0-9]{6}$'
+          from public.guest_payment_qr('07', g1, (p1->>'id')::uuid) q), 'H1 a guest gets the QR data of their own pending payment';
+  begin perform public.guest_payment_qr('07', g1, (p2->>'id')::uuid); ok := false;
+  exception when others then ok := sqlerrm = 'NOT_FOUND'; end;
+  assert ok, 'H2 guest A cannot read guest B''s payment';
+  begin perform public.guest_payment_qr('06', g1, (p1->>'id')::uuid); ok := false;
+  exception when others then ok := sqlerrm = 'NOT_FOUND'; end;
+  assert ok, 'H2b the table code must match';
+  execute 'reset role';
+  delete from public.restaurant_settings;      -- rolled back with the whole block
+  execute 'set local role anon';
+  assert (select q.bin is null and q.amount = 83000 from public.guest_payment_qr('07', g1, (p1->>'id')::uuid) q),
+    'H6 no bank details yet: bank columns are null (the guest pays at the counter)';
+  execute 'reset role';
+  insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
+  values ('Phở Mây Kitchen', '970436', '0000000000', 'PHO MAY KITCHEN');
+
   perform set_config('request.jwt.claims', json_build_object('sub', kit, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   update public.payments set status = 'confirmed' where id = (p1->>'id')::uuid;
@@ -114,6 +133,11 @@ begin
   begin update public.table_sessions set status = 'closed' where id = s07.id; ok := false;
   exception when others then ok := sqlerrm = 'UNPAID'; end;
   assert ok, 'D9 cashier cannot close an unpaid table';
+  execute 'set local role anon';
+  begin perform public.guest_payment_qr('07', g1, (p1->>'id')::uuid); ok := false;
+  exception when others then ok := sqlerrm = 'NOT_FOUND'; end;
+  assert ok, 'H3 a confirmed payment has no QR';
+  execute 'set local role authenticated';     -- back to the cashier (claims are still set)
   update public.payments set status = 'confirmed' where id in ((p2->>'id')::uuid, (p3->>'id')::uuid);
   update public.table_sessions set status = 'closed' where id = s07.id;
   begin update public.table_sessions set status = 'open' where id = s07.id; ok := false;
@@ -142,6 +166,11 @@ begin
   execute 'reset role';
   assert (select status from table_sessions where id = s03.id) = 'closed', 'E2 owner force-closes with a reason';
   assert (select status from payments where id = (r->>'id')::uuid) = 'cancelled', 'E3 pending requests are cancelled on close';
+  execute 'set local role anon';
+  begin perform public.guest_payment_qr('03', (r->>'guest_id')::uuid, (r->>'id')::uuid); ok := false;
+  exception when others then ok := sqlerrm = 'NOT_FOUND'; end;
+  execute 'reset role';
+  assert ok, 'H5 a closed session has no QR';
 
   ------------------------------------------------------------ F. cash at the counter
   g1 := (public.join_table('08', 'Lan', s08.pin, 'ip-d')->>'guest_id')::uuid;
@@ -157,6 +186,11 @@ begin
   perform set_config('request.jwt.claims', json_build_object('sub', cas, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   p1 := public.record_cash_payment(s08.id);
+  execute 'set local role anon';               -- the request is cancelled, the session still open
+  begin perform public.guest_payment_qr('08', g1, (r->>'id')::uuid); ok := false;
+  exception when others then ok := sqlerrm = 'NOT_FOUND'; end;
+  assert ok, 'H4 a cancelled payment has no QR';
+  execute 'set local role authenticated';
   update public.table_sessions set status = 'closed' where id = s08.id;
   execute 'reset role';
   assert (p1->>'amount')::int = 65000 and p1->>'status' = 'confirmed' and (p1->>'confirmed_by')::uuid = cas, 'F2 cash settles the rest, confirmed by the cashier';
