@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+/*
+  Design tokens – mirror the Figma Variables and docs/prototype/tabletap-prototype.html.
+  Use them as Tailwind classes: bg-brand, text-muted, border-border, rounded-md, font-sans …
+*/
+@theme {
+  --color-bg: #ffffff;
+  --color-surface: #f6f4f0;
+  --color-surface-brand: #fff1e8;
+  --color-brand: #e8590c;
+  --color-brand-strong: #c2410c;
+  --color-text: #1c1a17;
+  --color-muted: #6e6860;
+  --color-border: #e8e3dc;
+  --color-success: #2b8a3e;
+  --color-success-surface: #e9f7ec;
+  --color-danger: #c92a2a;
+  --color-danger-surface: #fff0ef;
+  --color-dark: #1c1a17;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+
+  --font-sans: var(--font-be-vietnam-pro), system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Type scale from the design (Display / Title / Heading / Body / Caption) */
+@utility text-display {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+@utility text-title {
+  font-size: 18px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+}
+@utility text-heading {
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+}
+@utility text-body {
+  font-size: 14px;
+  line-height: 20px;
+}
+@utility text-caption {
+  font-size: 12px;
+  line-height: 16px;
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
