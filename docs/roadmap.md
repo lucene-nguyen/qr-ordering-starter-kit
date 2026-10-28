@@ -33,7 +33,7 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - [x] Scanning the QR for table 1 opens the menu and shows "Table 1".
 - [x] An invalid table ID shows a friendly error page.
 - [x] Items marked unavailable are hidden or greyed out.
-- [ ] The app is live on a Vercel URL.
+- [x] The app is live on a Vercel URL.
 
 **Prototype screens:** 00 Join table (name step can wait until Phase 4), 00a Table not found, 01 Menu, 02 Item (view only), Staff · Settings › Tables & QR.
 

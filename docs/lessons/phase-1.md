@@ -1,7 +1,8 @@
 # Phase 1 – Table-based menu · LEARNING-95
 
-- Dates: 2026-10-28 → (open until deployed to Vercel)
-- PR / commits: not committed yet (folder is not a git repo)
+- Dates: 2026-10-28 → 2026-10-28
+- Live: https://qr-ordering-starter-kit.vercel.app/t/01
+- Commits: `522d8bc` (scaffold + Phase 1), `67ce24a` (QR origin fix)
 
 ## What I built
 - Schema `categories`, `menu_items`, `tables` with RLS – `supabase/migrations/20261028000000_phase1_menu.sql`, demo data in `supabase/seed.sql`.
@@ -34,6 +35,10 @@ the logo is laid over with CSS instead of merged into a PNG, so there is no nati
 ## What was hard / what broke
 - The QR page showed as `○ (Static)` in the build, so newly added tables would never appear. Fixed with `connection()`.
 - Searching "pho" did not match "Phở". Fixed by folding accents before comparing (`normalize("NFD")` + strip marks + `đ → d`).
+- **After deploying, the QR cards pointed to `localhost:3000`.** `NEXT_PUBLIC_*` variables are
+  copied into the code at *build* time, so a missing or wrong value on Vercel gets baked into every
+  build. Fix: build the link from the request's own host (`headers()`), so there is no
+  base-URL setting at all – localhost, preview and production each print their own links.
 - A malformed item id (`/item/abc`) would make Postgres throw "invalid uuid" (500). The query checks the uuid shape first, and the page sends a stale link back to the menu.
 
 ## Decisions I made (and why)
@@ -47,7 +52,7 @@ the logo is laid over with CSS instead of merged into a PNG, so there is no nati
 - [x] Scanning the QR for table 1 opens the menu and shows "Table 1" – `/t/01` shows the "Table 01" badge.
 - [x] An invalid table ID shows a friendly error page – `/t/99` returns 404 with the 00a screen.
 - [x] Items marked unavailable are hidden or greyed out – Chè ba màu is greyed with "Sold out".
-- [ ] The app is live on a Vercel URL – to do (see deploy steps).
+- [x] The app is live on a Vercel URL – https://qr-ordering-starter-kit.vercel.app/
 
 ## If I did it again
 <!-- fill in after deploying -->
