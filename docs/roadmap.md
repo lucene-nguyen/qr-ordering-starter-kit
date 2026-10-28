@@ -69,10 +69,10 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 **Learning goals:** realtime pub/sub (Postgres changes over WebSocket); modelling a status state machine; reconnects and missed events.
 
 **Acceptance criteria**
-- [ ] A new order appears on the kitchen screen within ~2 seconds, no reload.
-- [ ] Status changes are visible to the customer.
-- [ ] Marking an item sold out hides it from the menu right away.
-- [ ] After a dropped connection, the screen resyncs without losing orders.
+- [x] A new order appears on the kitchen screen within ~2 seconds, no reload.
+- [x] Status changes are visible to the customer.
+- [x] Marking an item sold out hides it from the menu right away.
+- [x] After a dropped connection, the screen resyncs without losing orders.
 
 **Prototype screens:** K1 Kitchen, K1b Kitchen offline, sold-out drawer, 04 Order status (live steps).
 

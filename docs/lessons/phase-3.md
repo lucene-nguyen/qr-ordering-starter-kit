@@ -1,8 +1,8 @@
 # Phase 3 – Realtime kitchen display · LEARNING-97
 
-- Dates: 2026-10-28 → (open until test #1 passes)
+- Dates: 2026-10-28 → 2026-10-28
 - Commits: `b1a06d2` (roles, RLS, publication), `4a71bf7` (sign-in, proxy), `69fcabc` (kitchen board,
-  live guest status), `9f42e4a` (sold-out drawer), `e95dd97` (Start shift, chime), then the Realtime auth fix
+  live guest status), `9f42e4a` (sold-out drawer), `e95dd97` (Start shift, chime), `5484cae` (Realtime auth fix)
 - Decision record: [ADR 0002 – staff sign-in moved to Phase 3](../decisions/0002-staff-auth-early.md)
 
 ## What I built
@@ -70,7 +70,7 @@ touch, and it plays a near-silent chime to unlock WebAudio.
 - **Menu updates greyed out, not hidden**, so guests see why a dish is gone.
 
 ## Acceptance criteria check
-- [ ] A new order appears on the kitchen screen within ~2 seconds, no reload. *(retest #1 after the Realtime auth fix)*
+- [x] A new order appears on the kitchen screen within ~2 seconds, no reload. Passed on retest after the Realtime auth fix; `realtime.subscription` shows `authenticated` for both kitchen subscriptions.
 - [x] Status changes are visible to the customer. Tested: about 1.3 s, no reload; a forged broadcast is ignored.
 - [x] Marking an item sold out hides it from the menu right away. Tested: greyed out in about 1.3 s, no reload.
 - [x] After a dropped connection, the screen resyncs without losing orders. Tested (#2–#8).
