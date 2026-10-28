@@ -1,5 +1,6 @@
 "use server";
 
+import { writesBlocked } from "@/lib/db-env";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { broadcast } from "@/lib/realtime-notify";
@@ -16,6 +17,9 @@ const NOT_ALLOWED = "Only the cashier or the owner can open and close tables.";
  * only allows table_id, and the database generates the PIN and stamps opened_by.
  */
 export async function openSession(tableCode: string): Promise<SessionResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   const staff = await requireStaff();
   if (!allowed(staff, CAN.manageTables)) return { ok: false, message: NOT_ALLOWED };
   const table = z.string().min(1).max(10).safeParse(tableCode).success ? await getTableByCode(tableCode) : null;
@@ -38,6 +42,9 @@ const closeInput = z.object({ sessionId: z.uuid(), reason: z.string().trim().max
  * only the owner, with a reason. Closing ends the PIN and every guest phone of that session.
  */
 export async function closeSession(sessionId: string, reason: string): Promise<SessionResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   const staff = await requireStaff();
   if (!allowed(staff, CAN.manageTables)) return { ok: false, message: NOT_ALLOWED };
   const parsed = closeInput.safeParse({ sessionId, reason });

@@ -16,11 +16,13 @@ type Table = { id: string; code: string };
 export async function getGuest(table: Table): Promise<Guest | null> {
   const id = (await cookies()).get(GUEST_COOKIE)?.value;
   if (!id || !z.uuid().safeParse(id).success) return null;
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from("session_guests")
     .select("id, display_name, table_sessions!inner(id, table_id, status)")
     .eq("id", id)
     .maybeSingle();
+  // A failed query is not "no guest": treating it as one hid a misconfigured deployment (wrong DB/key).
+  if (error) throw error;
   const s = data?.table_sessions;
   if (!data || !s || s.table_id !== table.id || s.status !== "open") return null;
   return { guestId: data.id, displayName: data.display_name, sessionId: s.id };
@@ -52,13 +54,14 @@ export async function setGuestCookie(tableCode: string, guestId: string) {
 
 /** The table's open session and who is in it, for the join screen. Null if staff haven't opened it. */
 export async function getOpenSession(tableId: string) {
-  const { data } = await createAdminClient()
+  const { data, error } = await createAdminClient()
     .from("table_sessions")
     .select("id, opened_at, session_guests(display_name, joined_at)")
     .eq("table_id", tableId)
     .eq("status", "open")
     .order("joined_at", { referencedTable: "session_guests" })
     .maybeSingle();
+  if (error) throw error; // never show "table isn't open" because the query itself failed
   if (!data) return null;
   return { openedAt: data.opened_at, guestNames: data.session_guests.map((g) => g.display_name) };
 }

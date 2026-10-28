@@ -1,3 +1,4 @@
+import { databaseInfo } from "@/lib/db-env";
 import { Icon } from "@/lib/icons";
 import { ConsoleNav } from "@/modules/staff/components/console-nav";
 import { SignOutButton } from "@/modules/staff/components/sign-out-button";
@@ -7,6 +8,7 @@ import { allowed, CAN, requireStaff } from "@/modules/staff/queries";
 // The kitchen display lives outside this group because it is full-screen on its tablet.
 export default async function ConsoleLayout({ children }: { children: React.ReactNode }) {
   const staff = await requireStaff();
+  const db = databaseInfo();
   const items = [
     { href: "/staff/tables", section: "/staff/tables", label: "Tables", icon: "grid", locked: !allowed(staff, CAN.manageTables) },
     { href: "/staff/kitchen", section: "/staff/kitchen", label: "Kitchen", icon: "flame", locked: !allowed(staff, CAN.runKitchen) },
@@ -37,8 +39,27 @@ export default async function ConsoleLayout({ children }: { children: React.Reac
           </div>
         </div>
         <SignOutButton className="rounded-sm px-3 py-2 text-muted hover:bg-border/40" />
+        {db.deployment !== "production" && (
+          // Which database this non-production build uses, so a Preview on the wrong DB is obvious.
+          <p
+            title={`Supabase project ${db.ref} · ${db.deployment}`}
+            className={`text-caption mx-2 mt-1 rounded-sm px-2 py-1 font-semibold tabular-nums ${
+              db.misconfigured ? "bg-danger text-white" : "bg-border/60 text-muted"
+            }`}
+          >
+            {db.label} · {db.ref.slice(0, 6)}…
+          </p>
+        )}
       </aside>
-      <div className="min-w-0 flex-1">{children}</div>
+      <div className="min-w-0 flex-1">
+        {db.misconfigured && (
+          <p role="alert" className="bg-danger px-6 py-3 font-semibold text-white">
+            Preview is pointing at the PRODUCTION database. Every change is blocked until the Preview environment
+            variables on Vercel point at tabletap-dev.
+          </p>
+        )}
+        {children}
+      </div>
     </div>
   );
 }

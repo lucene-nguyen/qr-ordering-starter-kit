@@ -1,7 +1,7 @@
 import "server-only";
 import { createAuthClient } from "@/lib/supabase/auth-server";
 
-export type TableStatus = "available" | "ordering" | "awaiting" | "paid";
+export type TableStatus = "available" | "open" | "ordering" | "awaiting" | "paid";
 
 const IDLE_FLAG_MS = 3 * 60 * 60 * 1000; // S1 flags (never closes) tables idle this long – ADR 0003
 
@@ -30,7 +30,13 @@ export async function getTableBoard() {
     const bill = orders.reduce((n, o) => n + o.total, 0);
     const paid = s.payments.filter((p) => p.status === "confirmed").reduce((n, p) => n + p.amount, 0);
     const status: TableStatus =
-      bill > 0 && paid >= bill ? "paid" : s.payments.some((p) => p.status === "pending") ? "awaiting" : "ordering";
+      bill > 0 && paid >= bill
+        ? "paid"
+        : s.payments.some((p) => p.status === "pending")
+          ? "awaiting"
+          : s.session_guests.length === 0 && bill === 0
+            ? "open" // opened by staff, waiting for the first guest to join
+            : "ordering";
     return {
       ...table,
       status,

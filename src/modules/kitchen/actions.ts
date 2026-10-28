@@ -1,5 +1,6 @@
 "use server";
 
+import { writesBlocked } from "@/lib/db-env";
 import { z } from "zod";
 import { broadcast } from "@/lib/realtime-notify";
 import { createAuthClient } from "@/lib/supabase/auth-server";
@@ -14,6 +15,9 @@ export type AdvanceResult = { ok: true; status: (typeof NEXT)[From] } | { ok: fa
 const input = z.object({ orderId: z.uuid(), from: z.enum(["pending", "preparing", "ready"]) });
 
 export async function advanceOrder(orderId: string, from: From): Promise<AdvanceResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   const parsed = input.safeParse({ orderId, from });
   if (!parsed.success) return { ok: false, message: "Unknown order." };
   const staff = await requireStaff();

@@ -8,7 +8,7 @@ import type { SharedCartLine } from "./types";
  */
 export async function getSessionCart(sessionId: string, guestId: string) {
   const db = createAdminClient();
-  const [{ data: session, error }, { data: orders }] = await Promise.all([
+  const [{ data: session, error }, { data: orders, error: ordersError }] = await Promise.all([
     db
       .from("table_sessions")
       .select(
@@ -21,11 +21,13 @@ export async function getSessionCart(sessionId: string, guestId: string) {
     db.from("orders").select("id, total").eq("session_id", sessionId).neq("status", "cancelled").order("created_at"),
   ]);
   if (error) throw error;
+  if (ordersError) throw ordersError; // otherwise "Already ordered" would silently show 0đ
 
   const addonIds = [...new Set(session.cart_items.flatMap((c) => c.addon_ids))];
-  const { data: addons } = addonIds.length
+  const { data: addons, error: addonsError } = addonIds.length
     ? await db.from("menu_item_addons").select("id, name, extra_price, sort").in("id", addonIds).order("sort")
-    : { data: [] };
+    : { data: [], error: null };
+  if (addonsError) throw addonsError;
   const names = new Map(session.session_guests.map((g) => [g.id, g.display_name]));
 
   const lines: SharedCartLine[] = session.cart_items.map((c) => {

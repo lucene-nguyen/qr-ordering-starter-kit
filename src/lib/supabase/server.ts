@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
+import { env } from "@/lib/db-env";
 
 /**
  * Anonymous, read-only client for Server Components. Uses the publishable key, so Row Level
@@ -8,8 +9,8 @@ import type { Database } from "./database.types";
  */
 export function createSupabaseClient() {
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    env("NEXT_PUBLIC_SUPABASE_URL"),
+    env("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
     { auth: { persistSession: false } },
   );
 }

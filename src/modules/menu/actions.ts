@@ -1,5 +1,6 @@
 "use server";
 
+import { writesBlocked } from "@/lib/db-env";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAuthClient } from "@/lib/supabase/auth-server";
@@ -11,6 +12,9 @@ const input = z.object({ itemId: z.uuid(), available: z.boolean() });
 
 /** Kitchen/cashier/owner toggle "sold out today". Guests' open menus refresh via Realtime. */
 export async function setDishAvailability(itemId: string, available: boolean): Promise<AvailabilityResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   const parsed = input.safeParse({ itemId, available });
   if (!parsed.success) return { ok: false, message: "Unknown dish." };
   const staff = await requireStaff();

@@ -20,11 +20,12 @@ export async function getStaff(): Promise<Staff | null> {
   const { data: auth } = await supabase.auth.getClaims();
   const userId = auth?.claims.sub;
   if (!userId) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("staff_profiles")
     .select("display_name, role")
     .eq("user_id", userId)
     .maybeSingle();
+  if (error) throw error; // a failed query is not "no staff profile"
   return data ? { userId, displayName: data.display_name, role: data.role as StaffRole } : null;
 }
 

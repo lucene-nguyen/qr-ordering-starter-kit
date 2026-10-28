@@ -33,8 +33,8 @@ export default async function TablesPage({ searchParams }: Props) {
           <p className="text-muted">Open a session so guests can order. Closing it ends the PIN and every guest phone at that table.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {(["available", "ordering", "awaiting", "paid"] as TableStatus[]).map((s) => (
-            <StatusPill key={s} status={s}>
+          {(["available", "open", "ordering", "awaiting", "paid"] as TableStatus[]).map((s) => (
+            <StatusPill key={s} status={s} quiet={!counts[s]}>
               {counts[s] ?? 0} {statusLabel(s).toLowerCase()}
             </StatusPill>
           ))}

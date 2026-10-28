@@ -1,5 +1,6 @@
 "use server";
 
+import { writesBlocked } from "@/lib/db-env";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -23,6 +24,9 @@ async function guestIp() {
 
 /** 00 · Join: needs the PIN of the table's open session (staff read it out, ADR 0003). */
 export async function joinTable(_prev: JoinState, formData: FormData): Promise<JoinState> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { error: blocked };
+
   const name = String(formData.get("name") ?? "");
   const parsed = input.safeParse({ tableCode: formData.get("tableCode"), name, pin: formData.get("pin") ?? "" });
   if (!parsed.success) return { error: "Enter the 4-digit table PIN from our staff.", name };
