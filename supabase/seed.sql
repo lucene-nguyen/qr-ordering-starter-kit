@@ -61,6 +61,7 @@ insert into public.staff_profiles (user_id, display_name, role)
 select u.id, p.display_name, p.role
 from (values
   ('hoa@phomay.example', 'Hoa Nguyen', 'owner'),
+  ('trang@phomay.example', 'Trang', 'owner'),
   ('an@phomay.example', 'An Tran', 'cashier'),
   ('bep@phomay.example', 'Bếp chính', 'kitchen')
 ) as p(email, display_name, role)
