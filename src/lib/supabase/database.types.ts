@@ -1,6 +1,6 @@
 // Generated from the Supabase schema of the DEV project – do not edit by hand. Regenerate after each
-// migration with the Supabase MCP `generate_typescript_types` or
-// `npx supabase gen types typescript --project-id kozwhezqksupsstvunka` (dev; prod must match it).
+// migration: `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
+// (linked = tabletap-dev, kozwhezqksupsstvunka; prod must match it), then re-add this header.
 
 export type Json =
   | string
@@ -103,6 +103,35 @@ export type Database = {
           sort?: number
         }
         Relationships: []
+      }
+      join_attempts: {
+        Row: {
+          created_at: string
+          id: number
+          ip: string
+          table_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: never
+          ip: string
+          table_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: never
+          ip?: string
+          table_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_attempts_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "tables"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       menu_item_addons: {
         Row: {
@@ -324,6 +353,93 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          guest_id: string | null
+          id: string
+          kind: string
+          method: string
+          payer_name: string | null
+          reference: string | null
+          session_id: string
+          status: string
+        }
+        Insert: {
+          amount: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          kind?: string
+          method: string
+          payer_name?: string | null
+          reference?: string | null
+          session_id: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          guest_id?: string | null
+          id?: string
+          kind?: string
+          method?: string
+          payer_name?: string | null
+          reference?: string | null
+          session_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_guest_id_fkey"
+            columns: ["guest_id"]
+            isOneToOne: false
+            referencedRelation: "session_guests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "table_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      restaurant_settings: {
+        Row: {
+          account_name: string
+          account_no: string
+          bank_bin: string
+          id: number
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          account_name: string
+          account_no: string
+          bank_bin: string
+          id?: number
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_no?: string
+          bank_bin?: string
+          id?: number
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       session_guests: {
         Row: {
           display_name: string
@@ -375,27 +491,42 @@ export type Database = {
         Row: {
           cart_version: number
           closed_at: string | null
+          closed_by: string | null
+          closed_reason: string | null
           id: string
           last_activity_at: string
           opened_at: string
+          opened_by: string | null
+          pin: string
+          split_people: number | null
           status: string
           table_id: string
         }
         Insert: {
           cart_version?: number
           closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           id?: string
           last_activity_at?: string
           opened_at?: string
+          opened_by?: string | null
+          pin?: string
+          split_people?: number | null
           status?: string
           table_id: string
         }
         Update: {
           cart_version?: number
           closed_at?: string | null
+          closed_by?: string | null
+          closed_reason?: string | null
           id?: string
           last_activity_at?: string
           opened_at?: string
+          opened_by?: string | null
+          pin?: string
+          split_people?: number | null
           status?: string
           table_id?: string
         }
@@ -435,6 +566,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_payment: {
+        Args: { p_guest: string; p_table_code: string }
+        Returns: undefined
+      }
       cart_add: {
         Args: { p_guest: string; p_line: Json; p_table_code: string }
         Returns: number
@@ -449,7 +584,12 @@ export type Database = {
         Returns: number
       }
       join_table: {
-        Args: { p_name: string; p_table_code: string }
+        Args: {
+          p_ip: string
+          p_name: string
+          p_pin: string
+          p_table_code: string
+        }
         Returns: Json
       }
       place_order: {
@@ -458,6 +598,16 @@ export type Database = {
       }
       place_session_order: {
         Args: { p_cart_version: number; p_guest: string; p_table_code: string }
+        Returns: Json
+      }
+      record_cash_payment: { Args: { p_session_id: string }; Returns: Json }
+      request_payment: {
+        Args: {
+          p_guest: string
+          p_mode: string
+          p_people: number
+          p_table_code: string
+        }
         Returns: Json
       }
     }
@@ -469,3 +619,128 @@ export type Database = {
     }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      order_status: ["pending", "preparing", "ready", "served", "cancelled"],
+    },
+  },
+} as const

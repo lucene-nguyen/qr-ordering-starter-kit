@@ -50,6 +50,8 @@ function toGuestMessage(code: string) {
       return "Cart changed, check it again";
     case "CART_EMPTY":
       return "Your cart is empty.";
+    case "RATE_LIMITED":
+      return "You've sent 5 rounds in 10 minutes. Please ask our staff.";
   }
   console.error("cart action failed:", code);
   return "Something went wrong. Please try again.";
