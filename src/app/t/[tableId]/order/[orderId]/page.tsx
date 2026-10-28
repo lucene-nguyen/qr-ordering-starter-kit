@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/lib/icons";
+import { RefreshOnBroadcast } from "@/lib/realtime-refresh";
 import { formatVnd } from "@/lib/money";
 import { formatTime } from "@/lib/time";
 import { PageNav } from "@/modules/orders/components/page-nav";
@@ -19,7 +20,7 @@ const STAGE = {
   served: { step: 3, icon: "checkCircle", title: "Enjoy your meal", hint: "Order more anytime" },
 } as const;
 
-// 04 · Order status. Phase 2 shows the state on load; live updates come with Realtime in Phase 3.
+// 04 · Order status. Live: the kitchen's status change broadcasts on `order:<id>` and this page re-reads the order.
 export default async function OrderStatusPage({ params }: Props) {
   const { tableId, orderId } = await params;
   const order = await getOrder(orderId);
@@ -29,6 +30,7 @@ export default async function OrderStatusPage({ params }: Props) {
   const stage = STAGE[order.status];
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
+      <RefreshOnBroadcast channel={`order:${order.id}`} event="status" />
       <PageNav back={`/t/${tableId}`} title={`Order #${order.order_no}`} subtitle={order.tables.label} />
 
       <div className="flex-1">
