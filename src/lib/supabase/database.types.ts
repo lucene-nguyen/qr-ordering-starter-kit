@@ -1,5 +1,6 @@
-// Generated from the Supabase schema – do not edit by hand. Regenerate after each migration with the
-// Supabase MCP `generate_typescript_types` or `npx supabase gen types typescript --project-id sxwcsxyalzblvkhtlola`.
+// Generated from the Supabase schema of the DEV project – do not edit by hand. Regenerate after each
+// migration with the Supabase MCP `generate_typescript_types` or
+// `npx supabase gen types typescript --project-id kozwhezqksupsstvunka` (dev; prod must match it).
 
 export type Json =
   | string
