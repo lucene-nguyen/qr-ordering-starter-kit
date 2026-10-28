@@ -1,4 +1,27 @@
 import type { Locator, Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import { assertDevDatabase } from "./guard";
+
+/**
+ * Runs `fn` while the DEV database has no restaurant_settings row (no bank details yet), then puts
+ * the row back exactly as it was – also when `fn` fails. Uses the secret key from .env.local.
+ */
+export async function withoutBankDetails(fn: () => Promise<void>) {
+  assertDevDatabase();
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
+  const { data: row, error } = await db.from("restaurant_settings").select("*").maybeSingle();
+  if (error) throw new Error(`Reading restaurant_settings failed: ${error.message}`);
+  const removed = await db.from("restaurant_settings").delete().eq("id", 1);
+  if (removed.error) throw new Error(`Removing restaurant_settings failed: ${removed.error.message}`);
+  try {
+    await fn();
+  } finally {
+    if (row) {
+      const restored = await db.from("restaurant_settings").insert(row);
+      if (restored.error) throw new Error(`Restoring restaurant_settings failed: ${restored.error.message}`);
+    }
+  }
+}
 
 export type Role = "owner" | "cashier" | "kitchen";
 export type Account = { email: string; password: string };

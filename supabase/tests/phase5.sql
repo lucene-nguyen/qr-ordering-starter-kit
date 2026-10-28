@@ -2,7 +2,7 @@
 -- Everything runs in one DO block and ends with `raise exception 'ALL_OK'`, which rolls the whole
 -- block back: seeing "ERROR: ALL_OK" means every assert passed and nothing was left behind.
 -- Any other error names the failing check (A1…H6).
--- Needs: seed.sql (menu, tables) and the staff accounts hoa@ (owner), an@ (cashier), bep@ (kitchen),
+-- Needs: seed.sql (menu, tables, the demo restaurant_settings row) and the staff accounts hoa@ (owner), an@ (cashier), bep@ (kitchen),
 -- and tables 03, 06, 07, 08 without an open session.
 -- Staff are simulated with `set local role authenticated` + their JWT claims, so RLS, column grants
 -- and triggers apply exactly as for a real signed-in user; guests go through the service functions.
@@ -157,6 +157,8 @@ begin
 
   ------------------------------------------------------------ E. owner force close (table 03 still owes money)
   r := public.request_payment('03', (select id from session_guests where session_id = s03.id limit 1), 'full', null);
+  assert (r->>'guest_id')::uuid = (select id from session_guests where session_id = s03.id limit 1),
+    'E0 request_payment returns the guest_id (so H5 really asks with the right guest)';
   perform set_config('request.jwt.claims', json_build_object('sub', own, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';
   begin update public.table_sessions set status = 'closed' where id = s03.id; ok := false;

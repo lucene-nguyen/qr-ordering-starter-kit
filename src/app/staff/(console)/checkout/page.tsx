@@ -5,7 +5,8 @@ import { RefreshOnStaffChanges } from "@/lib/realtime-refresh";
 import { formatTime } from "@/lib/time";
 import { ActionButton } from "@/modules/payments/components/action-button";
 import { getCheckout } from "@/modules/payments/queries";
-import { confirmPayment, recordCash } from "@/modules/payments/staff-actions";
+import { CashButton } from "@/modules/payments/components/cash-button";
+import { confirmPayment } from "@/modules/payments/staff-actions";
 import { NoAccess } from "@/modules/staff/components/no-access";
 import { allowed, CAN, requireStaff } from "@/modules/staff/queries";
 import { getTableBoard } from "@/modules/table-session/board";
@@ -16,7 +17,7 @@ export const metadata: Metadata = { title: "Checkout · TableTap staff" };
 type Props = { searchParams: Promise<{ table?: string | string[] }> };
 
 const pill = "text-caption rounded-full px-2.5 py-0.5";
-const small = "h-10 w-full rounded-md border border-border bg-bg px-3 text-[14px] font-semibold hover:bg-surface";
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 // C2 · Checkout. Owner and cashier: the bill, payment requests to confirm, cash, close the table.
 // Live through Realtime on sessions, orders and payments (a guest asking to pay shows up at once).
@@ -57,7 +58,7 @@ export default async function CheckoutPage({ searchParams }: Props) {
         <div className="min-w-60 flex-1">
           <h1 className="text-display">Checkout · {t.label}</h1>
           <p className="text-muted">
-            {s.orders} order(s) · {s.guests.length} guest(s) · opened {formatTime(s.openedAt)}
+            {plural(s.orders, "order")} · {plural(s.guests.length, "guest")} · opened {formatTime(s.openedAt)}
           </p>
         </div>
         <nav aria-label="Tables with a bill" className="flex flex-wrap gap-2">
@@ -141,9 +142,11 @@ export default async function CheckoutPage({ searchParams }: Props) {
                 <span className="flex-1 font-semibold">Remaining</span>
                 <span className="font-semibold tabular-nums text-brand-strong">{formatVnd(remaining)}</span>
               </div>
-              <ActionButton action={recordCash.bind(null, s.id)} pendingLabel="Recording…" className={small}>
-                Paid in cash
-              </ActionButton>
+              <CashButton
+                sessionId={s.id}
+                amount={remaining}
+                awaiting={bill.payments.filter((p) => p.status === "pending").map((p) => ({ name: p.payer_name ?? "A guest", amount: p.amount }))}
+              />
             </div>
           )}
           <hr className="border-border" />

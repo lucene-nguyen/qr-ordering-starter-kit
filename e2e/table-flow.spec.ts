@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { account, missingAccount, signIn, type Role } from "./helpers";
+import { account, missingAccount, signIn, withoutBankDetails, type Role } from "./helpers";
 
 // LEARNING-99 end to end: staff open a table → guest joins with the PIN and orders → staff close.
 // Every actor gets its own browser context (= its own device). Screenshots for the prototype
@@ -51,6 +51,12 @@ async function addDish(page: Page, code: string, dish: string, qty: number) {
   for (let i = 1; i < qty; i++) await page.getByRole("button", { name: "Increase quantity" }).click();
   await page.getByRole("button", { name: /Add to cart/ }).click();
   await page.waitForURL(`**/t/${code}`);
+}
+
+async function placeOrder(page: Page, code: string) {
+  await page.goto(`/t/${code}/cart`);
+  await page.getByRole("button", { name: /Place order/ }).click();
+  await page.waitForURL(`**/t/${code}/order/**`);
 }
 
 /** Owner closes the table whatever its state: already closed, open and settled, or owing (force). */
@@ -185,5 +191,66 @@ test.describe("table session flow", () => {
     await shot(lan, "06-paid");
 
     await forceClose(owner, "09", "E2E cleanup: the other shares were never paid");
+  });
+
+  test("(d) Paid in cash while a VietQR request is awaiting asks first, then withdraws it", async ({ browser }) => {
+    const cashier = await staff(browser, "cashier");
+    const owner = await staff(browser, "owner");
+    const lan = await guest(browser);
+
+    await forceClose(owner, "01", "E2E clean start");
+    const pin = await openTable(cashier, "01");
+    await join(lan, "01", "Lan", pin);
+    await addDish(lan, "01", "Phở bò tái", 1);
+    await placeOrder(lan, "01");
+    await lan.goto("/t/01/pay");
+    await lan.getByRole("button", { name: "Show payment QR" }).click();
+    await expect(lan.getByRole("img", { name: "VietQR code for 65.000đ" })).toBeVisible();
+    await lan.waitForTimeout(1500); // let the guest's Realtime channel join
+
+    await cashier.goto("/staff/checkout?table=01");
+    const payments = cashier.getByRole("region", { name: "Payments" });
+    await expect(payments).toContainText("Awaiting");
+    await payments.getByRole("button", { name: "Paid in cash · 65.000đ" }).click();
+    const dialog = cashier.getByRole("dialog", { name: "Record a cash payment?" });
+    await expect(dialog).toContainText(
+      "Lan's 65.000đ transfer request will be cancelled. Check your bank app first — if it arrived, confirm it instead.",
+    );
+    await shot(cashier, "C2-cash-confirm");
+    await dialog.getByRole("button", { name: "Go back" }).click();
+    await expect(dialog).toBeHidden();
+    await expect(payments).toContainText("Awaiting"); // nothing changed
+
+    await payments.getByRole("button", { name: "Paid in cash · 65.000đ" }).click();
+    await dialog.getByRole("button", { name: "Record cash · 65.000đ" }).click();
+    await expect(payments).toContainText("Cash at the counter");
+    await expect(payments).toContainText("Settled");
+    await expect(payments).not.toContainText("Awaiting"); // the transfer request was withdrawn
+
+    // The guest's QR disappears by itself; closing the table then takes the phone to 00b.
+    await expect(lan.getByText("Everything left is already being paid or settled.")).toBeVisible({ timeout: 10_000 });
+    await payments.getByRole("button", { name: "Close table" }).click();
+    await expect(lan.getByRole("heading", { name: "This table isn't open yet" })).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("(e) without bank details the guest is sent to the counter", async ({ browser }) => {
+    const cashier = await staff(browser, "cashier");
+    const owner = await staff(browser, "owner");
+    const minh = await guest(browser);
+
+    await forceClose(owner, "02", "E2E clean start");
+    const pin = await openTable(cashier, "02");
+    await join(minh, "02", "Minh", pin);
+    await addDish(minh, "02", "Bún chả Hà Nội", 1);
+    await placeOrder(minh, "02");
+    await withoutBankDetails(async () => {
+      await minh.goto("/t/02/pay");
+      await minh.getByRole("button", { name: "Show payment QR" }).click();
+      await expect(minh.getByRole("heading", { name: "Pay at the counter" })).toBeVisible();
+      await expect(minh.getByRole("main")).toContainText("60.000đ");
+      await expect(minh.getByRole("img", { name: /VietQR code/ })).toHaveCount(0);
+      await shot(minh, "05-pay-at-counter");
+    });
+    await forceClose(owner, "02", "E2E cleanup");
   });
 });

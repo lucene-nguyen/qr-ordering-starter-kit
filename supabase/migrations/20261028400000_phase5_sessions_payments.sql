@@ -71,9 +71,8 @@ create table public.restaurant_settings (
   account_name text not null check (account_name ~ '^[A-Z0-9 ]{1,50}$'), -- as the bank prints it
   updated_at timestamptz not null default now()
 );
--- Placeholder account until the owner enters the real one on O3 (real details never go in the repo).
-insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
-values ('Phở Mây Kitchen', '970436', '0000000000', 'PHO MAY KITCHEN');
+-- No row until the owner enters the real account on O3: guests are sent to the counter meanwhile.
+-- (A placeholder account here would reach prod and send guests' money nowhere.) Dev/E2E: seed.sql.
 
 alter table public.restaurant_settings enable row level security;
 create policy "Staff read settings" on public.restaurant_settings for select to authenticated
