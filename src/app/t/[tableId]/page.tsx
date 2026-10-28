@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Icon } from "@/lib/icons";
-import { RefreshOnTableUpdate } from "@/lib/realtime-refresh";
+import { RefreshOnBroadcast, RefreshOnTableUpdate } from "@/lib/realtime-refresh";
 import { DishRow } from "@/modules/menu/components/dish-row";
 import { getMenu } from "@/modules/menu/queries";
 import { CartBar } from "@/modules/orders/components/cart-bar";
+import { getSessionCart } from "@/modules/orders/queries";
+import { cartCount, cartTotal } from "@/modules/orders/types";
 import { JoinScreen } from "@/modules/table-session/components/join-screen";
 import { getGuest, getOpenSession } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
@@ -39,12 +41,14 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
     );
   }
 
+  const cart = await getSessionCart(guest.sessionId, guest.guestId);
   const itemHref = (id: string) => `/t/${table.code}/item/${id}`;
   const popular = menu.flatMap((c) => c.menu_items.filter((i) => i.is_popular));
 
   return (
     <main className="mx-auto min-h-dvh max-w-[480px]">
       <RefreshOnTableUpdate table="menu_items" />
+      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} event="cart" delayMs={300} />
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -115,7 +119,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
           ))}
         </>
       )}
-      <CartBar tableCode={table.code} />
+      <CartBar tableCode={table.code} count={cartCount(cart.lines)} total={cartTotal(cart.lines)} />
     </main>
   );
 }

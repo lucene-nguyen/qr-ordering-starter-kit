@@ -1,16 +1,10 @@
-"use client";
-
 import Link from "next/link";
 import { Icon } from "@/lib/icons";
 import { formatVnd } from "@/lib/money";
-import { cartCount, cartTotal, useCart } from "../cart";
 
-/** Dark "View cart" bar pinned to the bottom of the menu while the cart has items. */
-export function CartBar({ tableCode }: { tableCode: string }) {
-  const cart = useCart(tableCode);
-  if (!cart?.lines.length) return null;
-  const count = cartCount(cart.lines);
-
+/** Dark "View cart" bar pinned to the bottom of the menu while the shared cart has items. */
+export function CartBar({ tableCode, count, total }: { tableCode: string; count: number; total: number }) {
+  if (count === 0) return null;
   return (
     <div className="sticky bottom-0 border-t border-border bg-bg px-4 pt-3.5 pb-7">
       <Link
@@ -26,10 +20,10 @@ export function CartBar({ tableCode }: { tableCode: string }) {
         <span className="flex-1">
           <span className="block font-semibold">View cart</span>
           <span className="text-caption opacity-70">
-            {count} {count === 1 ? "item" : "items"}
+            {count} {count === 1 ? "item" : "items"} · shared with your table
           </span>
         </span>
-        <span className="text-heading tabular-nums">{formatVnd(cartTotal(cart.lines))}</span>
+        <span className="text-heading tabular-nums">{formatVnd(total)}</span>
       </Link>
     </div>
   );

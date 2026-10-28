@@ -1,10 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { formatVnd } from "@/lib/money";
 import type { MenuItemWithOptions } from "@/modules/menu/types";
-import { addToCart } from "../cart";
+import { addToCart } from "../actions";
 import { Stepper } from "./stepper";
 
 const pill = "text-caption rounded-full px-2.5 py-0.5";
@@ -18,6 +18,8 @@ export function ItemOrderForm({ tableCode, item }: { tableCode: string; item: Me
   const [addonIds, setAddonIds] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [qty, setQty] = useState(1);
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   const size = sizes.find((s) => s.id === sizeId) ?? null;
   const chosen = addons.filter((a) => addonIds.includes(a.id));
@@ -25,17 +27,17 @@ export function ItemOrderForm({ tableCode, item }: { tableCode: string; item: Me
   const soldOut = !item.is_available;
 
   function add() {
-    addToCart(tableCode, {
-      menuItemId: item.id,
-      name: item.name,
-      sizeId,
-      sizeName: sizes.length > 1 ? (size?.name ?? null) : null,
-      addons: chosen.map((a) => ({ id: a.id, name: a.name })),
-      note: note.trim(),
-      qty,
-      unitPrice,
+    setError(null);
+    start(async () => {
+      try {
+        // Into the table's shared cart; the server checks the dish, options and quantity again.
+        const result = await addToCart(tableCode, { menuItemId: item.id, sizeId, addonIds, note, qty });
+        if (!result.ok) return setError(result.message);
+        router.push(`/t/${tableCode}`);
+      } catch {
+        setError("Check your connection and try again.");
+      }
     });
-    router.push(`/t/${tableCode}`);
   }
 
   return (
@@ -100,15 +102,20 @@ export function ItemOrderForm({ tableCode, item }: { tableCode: string; item: Me
         </div>
       </div>
 
-      <div className="sticky bottom-0 flex items-center gap-4 border-t border-border bg-bg px-4 pt-3.5 pb-7">
+      <div className="sticky bottom-0 flex flex-wrap items-center gap-4 border-t border-border bg-bg px-4 pt-3.5 pb-7">
+        {error && (
+          <p role="alert" className="text-caption w-full text-danger">
+            {error}
+          </p>
+        )}
         <Stepper value={qty} onChange={setQty} label="quantity" />
         <button
           type="button"
           onClick={add}
-          disabled={soldOut}
+          disabled={soldOut || pending}
           className="h-[52px] flex-1 rounded-md bg-brand px-4 font-semibold text-white hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
-          {soldOut ? "Sold out" : <>Add to cart · <span className="tabular-nums">{formatVnd(unitPrice * qty)}</span></>}
+          {soldOut ? "Sold out" : pending ? "Adding…" : <>Add to cart · <span className="tabular-nums">{formatVnd(unitPrice * qty)}</span></>}
         </button>
       </div>
     </>

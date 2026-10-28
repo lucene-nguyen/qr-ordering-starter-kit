@@ -10,7 +10,10 @@ import { getOrder } from "@/modules/orders/queries";
 
 export const metadata: Metadata = { title: "Order status · TableTap" };
 
-type Props = { params: Promise<{ tableId: string; orderId: string }> };
+type Props = {
+  params: Promise<{ tableId: string; orderId: string }>;
+  searchParams: Promise<{ sent_by?: string | string[] }>;
+};
 
 const STEPS = ["Order received", "Preparing", "Ready to serve", "Served"];
 const STAGE = {
@@ -21,8 +24,10 @@ const STAGE = {
 } as const;
 
 // 04 · Order status. Live: the kitchen's status change broadcasts on `order:<id>` and this page re-reads the order.
-export default async function OrderStatusPage({ params }: Props) {
-  const { tableId, orderId } = await params;
+export default async function OrderStatusPage({ params, searchParams }: Props) {
+  const [{ tableId, orderId }, { sent_by }] = await Promise.all([params, searchParams]);
+  // Set when this guest pressed Place order just after someone else sent the same cart.
+  const sentBy = typeof sent_by === "string" ? sent_by.slice(0, 20) : null;
   const order = await getOrder(orderId);
   // Unknown id or another table's order: back to this table's menu (which 404s for a bad table).
   if (!order || order.tables.code !== tableId || order.status === "cancelled") redirect(`/t/${tableId}`);
@@ -34,6 +39,11 @@ export default async function OrderStatusPage({ params }: Props) {
       <PageNav back={`/t/${tableId}`} title={`Order #${order.order_no}`} subtitle={order.tables.label} />
 
       <div className="flex-1">
+        {sentBy && (
+          <p role="status" className="mx-4 my-2 flex items-center gap-2 rounded-md bg-surface p-3 text-muted">
+            <Icon name="users" size={18} /> {sentBy} just sent this round.
+          </p>
+        )}
         <section className={`mx-4 my-2 flex flex-col gap-2 rounded-lg p-5 ${stage.step === 3 ? "bg-success-surface" : "bg-surface-brand"}`}>
           <span className={`grid size-10 place-items-center rounded-full text-white ${stage.step === 3 ? "bg-success" : "bg-brand"}`}>
             <Icon name={stage.icon} size={20} />

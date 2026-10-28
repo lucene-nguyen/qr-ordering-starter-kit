@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { broadcast } from "@/lib/realtime-notify";
 import { createAuthClient } from "@/lib/supabase/auth-server";
 import { allowed, CAN, requireStaff } from "@/modules/staff/queries";
 
@@ -34,22 +34,7 @@ export async function advanceOrder(orderId: string, from: From): Promise<Advance
   }
   if (!data.length) return { ok: false, message: "This order was already updated on another screen." };
 
-  await notifyGuest(orderId, to);
+  // The guest's status page re-reads the order when it hears this (a forged message can't fake a status).
+  await broadcast(`order:${orderId}`, "status", { status: to });
   return { ok: true, status: to };
-}
-
-/**
- * Tells the guest's status page that something changed. It only triggers a re-read on the
- * server, so a forged message on this public channel can't show a wrong status (ADR 0002).
- * Sent over HTTP: no WebSocket needed from a Server Action. A failure must not undo the update.
- */
-async function notifyGuest(orderId: string, status: string) {
-  try {
-    const admin = createAdminClient();
-    const channel = admin.channel(`order:${orderId}`);
-    await channel.httpSend("status", { status });
-    await admin.removeChannel(channel);
-  } catch (e) {
-    console.error("notifyGuest failed:", e);
-  }
 }
