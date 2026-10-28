@@ -20,9 +20,7 @@ export async function listTables() {
   return data;
 }
 
-/** The URL a table's QR points to. */
-export function tableUrl(code: string) {
-  const base = process.env.NEXT_PUBLIC_APP_URL;
-  if (!base) throw new Error("NEXT_PUBLIC_APP_URL is not set");
-  return new URL(`/t/${encodeURIComponent(code)}`, base).toString();
+/** The URL a table's QR points to, on the site that is serving the request (`origin`). */
+export function tableUrl(code: string, origin: string) {
+  return new URL(`/t/${encodeURIComponent(code)}`, origin).toString();
 }

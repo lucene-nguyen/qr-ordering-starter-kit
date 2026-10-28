@@ -1,13 +1,11 @@
 import QRCode from "qrcode";
 import { Icon } from "@/lib/icons";
-import { tableUrl } from "../queries";
 
 /**
  * Printable table card. Error correction "H" survives ~30% of the code being covered, which is
  * what lets the restaurant logo sit in the middle (logo ≈ 22% of the width).
  */
-export async function TableQrCard({ code, label }: { code: string; label: string }) {
-  const url = tableUrl(code);
+export async function TableQrCard({ url, label }: { url: string; label: string }) {
   const svg = await QRCode.toString(url, { type: "svg", errorCorrectionLevel: "H", margin: 1 });
 
   return (
