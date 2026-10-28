@@ -101,7 +101,7 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 
 **Scope**
 - Table sessions opened by staff; ordering only allowed while a session is active.
-- Short-lived session token in the QR/URL (rotates when a session closes).
+- ~~Short-lived session token in the QR/URL~~ → a 4-digit session PIN that ends when the session closes (ADR 0003).
 - Rate limiting on order submission.
 - Staff auth with roles (owner, cashier, kitchen) via Supabase Auth + Row Level Security.
 - Checkout: view the bill, split the bill, generate a VietQR bank-transfer code for the amount.
@@ -110,10 +110,12 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 **Learning goals:** session management and token expiry; authorisation with RLS; payment integration and reconciliation basics.
 
 **Acceptance criteria**
-- [ ] A photographed QR code cannot place orders once the session is closed.
-- [ ] Only authorised staff can open/close sessions and mark payments.
-- [ ] The VietQR code shows the correct amount and order reference.
-- [ ] Split bill totals add up to the full bill.
+- [x] A photographed QR code cannot place orders once the session is closed.
+- [x] Only authorised staff can open/close sessions and mark payments.
+- [x] The VietQR code shows the correct amount and order reference.
+- [x] Split bill totals add up to the full bill.
+
+Evidence: `docs/lessons/phase-5.md`. Release to prod: `docs/runbooks/phase-5-release.md` (Jira stays In Review until then).
 
 **Prototype screens:** 00b Session not open, 05 Pay, 05b Payment pending, 06 Paid, S0 Sign in, S1/S1b Tables & Open session, C2 Checkout, O3 Settings › Payment.
 
@@ -141,3 +143,6 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - C2 "Show VietQR" for the remaining amount, so a guest can transfer at the counter. Needs a
   staff function that creates the payment row (amount and transfer note from the database);
   Phase 5 has guests scan on their own phone (05) or pay cash.
+- Restaurant name from `restaurant_settings` on guest screens (Join, menu) and the sidebar. Guests
+  can't read that table, so it needs a small public function that returns only the name; the
+  name is still written in the code.

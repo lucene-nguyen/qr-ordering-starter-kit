@@ -14,7 +14,7 @@ Conventions: `uuid` primary keys (`gen_random_uuid()`), `timestamptz` in UTC, mo
 | 2 | `menu_item_sizes`, `menu_item_addons`, `orders`, `order_items`, function `place_order` (migration `20261028100000_phase2_orders.sql`) |
 | 3 | `staff_profiles`, `private.staff_role()`, staff RLS + column grants, realtime publication (`20261028200000_phase3_staff_kitchen.sql`, `20261028201000_private_staff_role.sql`; see ADR 0002) |
 | 4 | `table_sessions` (+`cart_version`, `last_activity_at`), `session_guests`, `cart_items` (one row per guest per exact choice, `nulls not distinct`), `orders.session_id` FK + `placed_by`; functions `join_table`, `cart_add`, `cart_change`, `place_session_order`, `private.price_line` (`20261028300000_phase4_shared_cart.sql`, `20261028301000_cart_add_qty_check.sql`). No `version` column: quantity changes are atomic deltas. |
-| 5 | `payments`, `restaurant_settings`; `orders.session_id` becomes required |
+| 5 | `table_sessions` + `pin`, `opened_by`, `closed_by`, `closed_reason`, `split_people`; `payments`, `restaurant_settings`, `join_attempts`; functions `join_table` (PIN), `request_payment`, `cancel_payment`, `record_cash_payment`, `guest_payment_qr`, `private.session_remaining`; triggers `table_sessions_rules`, `payments_rules` (`20261028400000_phase5_sessions_payments.sql`, `20261028401000_guest_payment_qr.sql`, `20261028402000_owner_adds_settings.sql`; ADR 0003) |
 | 6 | views `daily_revenue`, `item_sales` |
 
 ```sql
@@ -119,31 +119,51 @@ create table cart_items (
   updated_at timestamptz not null default now()
 );
 
--- Phase 5 ---------------------------------------------------------------
+-- Phase 3 ---------------------------------------------------------------
 create table staff_profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   display_name text not null,
   role text not null check (role in ('owner', 'cashier', 'kitchen'))
 );
 
+-- Phase 5 (as built) ------------------------------------------------------
+alter table table_sessions
+  add column pin text not null default <random 4 digits>,   -- told to guests by staff; ends with the session
+  add column opened_by uuid default auth.uid(),              -- staff who opened it
+  add column closed_by uuid,                                 -- stamped by the trigger
+  add column closed_reason text,                             -- required when the owner force-closes unpaid
+  add column split_people int check (split_people between 2 and 8);  -- fixed by the first guest who splits
+
 create table payments (
   id uuid primary key default gen_random_uuid(),
   session_id uuid not null references table_sessions(id),
+  guest_id uuid references session_guests(id),               -- null for cash recorded by staff
   payer_name text,
-  amount int not null check (amount > 0),
+  kind text not null default 'full' check (kind in ('full', 'share')),
+  amount int not null check (amount > 0),                    -- computed by the database only
   method text not null check (method in ('vietqr', 'cash')),
-  status text not null check (status in ('pending', 'confirmed')) default 'pending',
-  reference text,                                   -- transfer note, e.g. 'TBL05 A0421'
-  confirmed_at timestamptz,
-  created_at timestamptz not null default now()
+  status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled')),
+  reference text,                                            -- transfer note 'TBL05 A0421'
+  created_at timestamptz not null default now(),
+  confirmed_at timestamptz,                                  -- stamped by the trigger
+  confirmed_by uuid                                          -- stamped by the trigger
+);
+create unique index payments_one_pending_per_guest on payments(guest_id) where status = 'pending';
+
+create table restaurant_settings (                           -- no row until the owner fills in O3
+  id int primary key default 1 check (id = 1),               -- single row
+  name text not null,
+  bank_bin text not null check (bank_bin ~ '^[0-9]{6}$'),    -- NAPAS BIN for VietQR
+  account_no text not null check (account_no ~ '^[0-9]{6,19}$'),
+  account_name text not null check (account_name ~ '^[A-Z0-9 ]{1,50}$'),
+  updated_at timestamptz not null default now()
 );
 
-create table restaurant_settings (
-  id int primary key default 1 check (id = 1),     -- single row
-  name text not null,
-  bank_bin text not null,                          -- NAPAS bank code for VietQR
-  account_no text not null,
-  account_name text not null
+create table join_attempts (                                 -- wrong PINs, service_role only
+  id bigint generated always as identity primary key,
+  table_id uuid not null references tables(id),
+  ip text not null,
+  created_at timestamptz not null default now()
 );
 ```
 
@@ -152,7 +172,19 @@ create table restaurant_settings (
 - Enable RLS on **every** table.
 - `categories`, `menu_items`, sizes, add-ons, `tables`: `select` for everyone; writes for `owner`/`cashier` (sold-out toggle also `kitchen`).
 - `orders`, `order_items`: `select` for staff roles; guests read their own session's orders through Server Actions only.
-- `table_sessions`, `payments`: staff only (`owner`, `cashier`).
+- `table_sessions`, `payments`: read by `owner`/`cashier`. Staff open sessions (insert `table_id` only;
+  PIN and `opened_by` are defaults), close them (update `status`, `closed_reason`) and confirm payments
+  (update `status`) as themselves.
+- `restaurant_settings`: read by `owner`/`cashier`; added and changed by `owner` only (column grants).
+- `join_attempts`: no policies (service_role only).
+- Business rules live in BEFORE triggers, so they also hold for direct API calls:
+  `table_sessions_rules` (close only when paid, unless the owner gives a reason; stamps
+  `closed_at`/`closed_by`; cancels pending payments; a closed session never reopens) and
+  `payments_rules` (only pending → confirmed | cancelled; stamps `confirmed_at`/`confirmed_by`).
+- Guest functions (`join_table`, `cart_*`, `place_session_order`, `request_payment`,
+  `cancel_payment`) are executable by `service_role` only; Server Actions call them after checking
+  the `tt_guest` cookie. `guest_payment_qr` is executable by `anon` and answers only for the
+  caller's own pending payment in an open session.
 - Reports views: `owner` only.
 - Helper: `private.staff_role()` reading `staff_profiles` for `auth.uid()` (Phase 3). Staff `update` is limited per column: `orders.status`, `menu_items.is_available`.
 
