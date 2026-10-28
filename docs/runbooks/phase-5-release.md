@@ -41,7 +41,7 @@ Guests who are mid-meal keep working through the gap. Only *new* joins fail unti
 3. Check on Vercel that Production has the prod Supabase variables (3 names, Production only). Done
    2026-10-28.
 
-**Release (at a quiet hour, e.g. 15:00–16:00 or after closing)**
+**Release** (prod only holds test data today, so a quiet hour is optional; the order below is not)
 4. Run the "before" checks (section e). Write down the open sessions.
 5. **End open sessions on prod.** Phase 4 has no close button, so do it in SQL. Ask the guests to pay
    at the counter first. Run this *before* the migration, while no trigger exists yet:
@@ -56,15 +56,18 @@ Guests who are mid-meal keep working through the gap. Only *new* joins fail unti
    Not strictly required: open sessions survive the migration. But they would come out of it with no
    staff opener and a PIN nobody was told, and unpaid bills from before payments existed. Starting
    clean is simpler.
-6. **Apply the three migrations, in file order, each in one transaction.** If a statement fails, the
-   whole file is rolled back.
-   - SQL Editor: paste the file between `begin;` and `commit;` and run it.
-   - Then record it, because the SQL Editor does not write the migration history:
+6. **Apply the three migrations, in file order.** Each one runs in one transaction, so a failing
+   statement rolls back the whole file.
+   - **(A) Default:** the architect chat applies each file with the Supabase MCP `apply_migration`,
+     named `phase5_sessions_payments`, `guest_payment_qr`, `owner_adds_settings`. Cuong approves each
+     file before it is applied. The MCP records the history itself (version = time of applying, like
+     Phases 1–4), so no insert is needed.
+   - **(B) SQL Editor:** paste the file between `begin;` and `commit;`, run it, then record it. The
+     SQL Editor does not write the history; both columns were checked on prod:
      ```sql
      insert into supabase_migrations.schema_migrations (version, name)
      values ('20261028400000', 'phase5_sessions_payments');   -- likewise 401000 guest_payment_qr, 402000 owner_adds_settings
      ```
-   - The Supabase MCP `apply_migration` with the same names records the history by itself.
 7. Run the "after" checks (section e) and the Security Advisor. Stop here if anything is off (section d).
 8. **Merge the PR into `main` right away.** Wait for the Vercel Production deployment to be **Ready**,
    about 1–2 minutes. This is the only window where new guests cannot join.
@@ -103,19 +106,19 @@ Do both steps:
 1. Vercel → Deployments → the previous Production deployment (`67cf84f`, `dpl_suqE3CkEd49AL981nmMYeXhNHuLV`)
    → **Instant Rollback**. Then on git: `git revert -m 1 <merge commit>` and push `main`, so the next
    push does not bring Phase 5 back.
-2. Make the DB work for the Phase 4 code again. This keeps all data (payments, settings, PINs), only
-   adds back the old join and removes the rules that the old join would trip over:
-   ```sql
-   begin;
-   -- Phase 4 join closes idle sessions itself; the Phase 5 rule would refuse that ("UNPAID").
-   drop trigger table_sessions_rules on public.table_sessions;
-   drop trigger payments_rules on public.payments;
-   -- Paste here the whole `create function public.join_table(p_table_code text, p_name text) … $$;`
-   -- statement from 20261028300000_phase4_shared_cart.sql (lines 160–192).
-   revoke execute on function public.join_table(text, text) from public, anon, authenticated;
-   grant execute on function public.join_table(text, text) to service_role;
-   commit;
-   ```
+2. Make the DB work for the Phase 4 code again with
+   [`phase-5-rollback.sql`](phase-5-rollback.sql). Run it in the prod SQL Editor; it has its own
+   `begin; … commit;`. It keeps all data (payments, settings, PINs). It drops the two Phase 5
+   triggers, because the old join closes idle sessions itself and the Phase 5 rule would refuse that.
+   It then adds back the Phase 4 `join_table(p_table_code, p_name)` verbatim, executable by
+   service_role only.
+   Dry run on dev (2026-10-28), inside `begin; … rollback;`:
+   - 0 triggers left;
+   - both `join_table` versions present;
+   - service_role may execute the old one, anon may not;
+   - the old join returned a `guest_id`.
+
+   Afterwards dev was unchanged.
    Then check: a guest can join a table on production and order.
 3. Before releasing Phase 5 again: the three migrations are already in the history, so the fix needs
    a **new** migration. It must drop `join_table(text, text)` and recreate the two triggers (copy them
@@ -123,11 +126,17 @@ Do both steps:
 
 ## e. Migration history checks (SQL Editor on prod, read-only)
 
+Prod's history uses the time of applying as `version` (`20261028025254 phase1_menu` …
+`20261028065501 cart_add_qty_check`), because Phases 1–4 went through the MCP. **Check by `name`,
+not by version.**
+
 **Before (step 4)**
 ```sql
--- Prod was applied through the MCP, so versions are times of applying; the names matter.
 select version, name from supabase_migrations.schema_migrations order by version;
--- expect the Phase 1–4 names (phase1_menu … cart_add_qty_check) and nothing from Phase 5
+-- expect the six Phase 1–4 names, phase1_menu … cart_add_qty_check
+
+select count(*) as phase5_already_there from supabase_migrations.schema_migrations
+where name in ('phase5_sessions_payments', 'guest_payment_qr', 'owner_adds_settings');  -- expect 0
 
 select to_regclass('public.payments') as payments, to_regclass('public.restaurant_settings') as settings,
        to_regclass('public.join_attempts') as join_attempts;          -- expect all null
@@ -139,8 +148,9 @@ where n.nspname = 'public' and p.proname = 'join_table';             -- expect: 
 
 **After (step 7)**
 ```sql
-select version, name from supabase_migrations.schema_migrations order by version desc limit 3;
--- expect 20261028402000 owner_adds_settings, 20261028401000 guest_payment_qr, 20261028400000 phase5_sessions_payments
+select name from supabase_migrations.schema_migrations
+where name in ('phase5_sessions_payments', 'guest_payment_qr', 'owner_adds_settings') order by version;
+-- expect the 3 names in this order (versions: times of applying with (A), the file numbers with (B))
 
 select p.proname, pg_get_function_identity_arguments(p.oid) as args
 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
