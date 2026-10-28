@@ -22,7 +22,7 @@ export default async function CartPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
-      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart"]} />
+      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart", "closed"]} />
       <CartView tableCode={table.code} tableLabel={table.label} cart={cart} />
     </main>
   );

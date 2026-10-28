@@ -7,6 +7,7 @@ export type Staff = { userId: string; displayName: string; role: StaffRole };
 /** Who may do what. Pages and Server Actions check these; RLS checks again in the database. */
 export const CAN = {
   runKitchen: ["owner", "cashier", "kitchen"],
+  manageTables: ["owner", "cashier"],
   markSoldOut: ["owner", "cashier", "kitchen"],
   manageSettings: ["owner"],
 } as const satisfies Record<string, readonly StaffRole[]>;
@@ -34,5 +35,5 @@ export async function requireStaff(): Promise<Staff> {
   return staff;
 }
 
-/** First page after signing in (the only console page in Phase 3). */
-export const STAFF_HOME = "/staff/kitchen";
+/** After signing in: /staff sends each role to its own screen (kitchen → Kitchen, others → Tables). */
+export const STAFF_HOME = "/staff";
