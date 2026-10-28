@@ -222,5 +222,23 @@ begin
   execute 'reset role';
   assert n = 1 and ok, 'G4 owner edits bank details; the format is checked';
 
+  delete from public.restaurant_settings;      -- a fresh restaurant: no bank details yet
+  perform set_config('request.jwt.claims', json_build_object('sub', cas, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  begin insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
+        values ('X', '970436', '1234567890', 'X'); ok := false;
+  exception when insufficient_privilege then ok := true; end;   -- RLS: new row violates policy
+  execute 'reset role';
+  assert ok, 'G5 cashier cannot add bank details';
+  perform set_config('request.jwt.claims', json_build_object('sub', own, 'role', 'authenticated')::text, true);
+  execute 'set local role authenticated';
+  insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
+  values ('Phở Mây Kitchen', '970436', '1234567890', 'PHO MAY KITCHEN');
+  begin insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
+        values ('Second', '970436', '1234567890', 'X'); ok := false;
+  exception when unique_violation then ok := true; end;
+  execute 'reset role';
+  assert ok, 'G6 owner adds the first row; there is never a second one';
+
   raise exception 'ALL_OK';
 end $$;

@@ -138,3 +138,6 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 ## Later (not scheduled)
 
 - Bank webhook to confirm VietQR transfers automatically (Phase 5 uses cashier confirmation).
+- C2 "Show VietQR" for the remaining amount, so a guest can transfer at the counter. Needs a
+  staff function that creates the payment row (amount and transfer note from the database);
+  Phase 5 has guests scan on their own phone (05) or pay cash.

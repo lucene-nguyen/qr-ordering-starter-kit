@@ -7,6 +7,7 @@ import { RefreshOnBroadcast } from "@/lib/realtime-refresh";
 import { formatTime } from "@/lib/time";
 import { PageNav } from "@/modules/orders/components/page-nav";
 import { cancelPayment } from "@/modules/payments/actions";
+import { bankName } from "@/modules/payments/banks";
 import { ActionButton } from "@/modules/payments/components/action-button";
 import { CopyButton } from "@/modules/payments/components/copy-button";
 import { PaymentQr } from "@/modules/payments/components/payment-qr";
@@ -137,6 +138,7 @@ export default async function PaymentPage({ params, searchParams }: Props) {
                 <span className="tabular-nums">{formatVnd(qr.amount)}</span>
                 <CopyButton text={String(qr.amount)} label="Copy amount" />
               </Row>
+              <Row label="Bank">{bankName(qr.bank.bin) ?? qr.bank.bin}</Row>
               <Row label="Account name">{qr.bank.accountName}</Row>
               <Row label="Account no.">
                 <span className="tabular-nums">{qr.bank.accountNo}</span>
