@@ -23,12 +23,13 @@ async function currentGuest(tableCode: string) {
 }
 
 /**
- * After a cart change: this phone gets fresh data in the same response (revalidatePath), the
- * other phones at the table hear the broadcast and re-read the cart themselves.
+ * After a cart change: the other phones at the table hear the broadcast and re-read the cart
+ * themselves; this phone gets fresh data in the same response (revalidatePath). Broadcast first,
+ * so the other phones start their refresh as early as possible.
  */
 async function cartChanged(tableCode: string, sessionId: string) {
-  revalidatePath(`/t/${tableCode}`, "layout");
   await broadcast(`session:${sessionId}`, "cart");
+  revalidatePath(`/t/${tableCode}`, "layout");
 }
 
 /** The database raises short codes; turn them into words a guest can act on. */

@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Icon } from "@/lib/icons";
-import { RefreshOnBroadcast } from "@/lib/realtime-refresh";
 import { formatVnd } from "@/lib/money";
+import { RefreshOnBroadcast } from "@/lib/realtime-refresh";
 import { formatTime } from "@/lib/time";
 import { PageNav } from "@/modules/orders/components/page-nav";
-import { getOrder } from "@/modules/orders/queries";
+import { getOrder, getSessionOrders } from "@/modules/orders/queries";
 
 export const metadata: Metadata = { title: "Order status · TableTap" };
 
@@ -22,8 +22,16 @@ const STAGE = {
   ready: { step: 2, icon: "bell", title: "Your food is ready", hint: "A server is bringing it to your table" },
   served: { step: 3, icon: "checkCircle", title: "Enjoy your meal", hint: "Order more anytime" },
 } as const;
+const PILL = {
+  pending: ["Received", "bg-surface text-muted"],
+  preparing: ["Preparing", "bg-surface-brand text-brand-strong"],
+  ready: ["Ready", "bg-success-surface text-success"],
+  served: ["Served", "bg-success-surface text-success"],
+} as const;
 
-// 04 · Order status. Live: the kitchen's status change broadcasts on `order:<id>` and this page re-reads the order.
+// 04 · Order status with rounds. A table session's orders are shown together: the hero and steps
+// follow the latest round, the item list covers every round. Live: kitchen status changes and new
+// rounds broadcast on session:<id>, and this page re-reads the orders.
 export default async function OrderStatusPage({ params, searchParams }: Props) {
   const [{ tableId, orderId }, { sent_by }] = await Promise.all([params, searchParams]);
   // Set when this guest pressed Place order just after someone else sent the same cart.
@@ -32,11 +40,18 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
   // Unknown id or another table's order: back to this table's menu (which 404s for a bad table).
   if (!order || order.tables.code !== tableId || order.status === "cancelled") redirect(`/t/${tableId}`);
 
-  const stage = STAGE[order.status];
+  const rounds = order.session_id ? await getSessionOrders(order.session_id) : [order];
+  const latest = rounds.at(-1) ?? order;
+  const stage = STAGE[latest.status as keyof typeof STAGE];
+  const roundCount = `${rounds.length} ${rounds.length === 1 ? "round" : "rounds"}`;
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
-      <RefreshOnBroadcast channel={`order:${order.id}`} event="status" />
-      <PageNav back={`/t/${tableId}`} title={`Order #${order.order_no}`} subtitle={order.tables.label} />
+      <RefreshOnBroadcast
+        channel={order.session_id ? `session:${order.session_id}` : `order:${order.id}`}
+        events={["status", "cart"]}
+      />
+      <PageNav back={`/t/${tableId}`} title={`Order #${latest.order_no}`} subtitle={`${order.tables.label} · ${roundCount}`} />
 
       <div className="flex-1">
         {sentBy && (
@@ -72,7 +87,7 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
                 </div>
                 <div>
                   <p className={i > stage.step ? "text-muted" : "font-semibold"}>{label}</p>
-                  {i === 0 && <p className="text-caption text-muted">{formatTime(order.created_at)}</p>}
+                  {i === 0 && <p className="text-caption text-muted">{formatTime(latest.created_at)}</p>}
                   {current && i > 0 && <p className="text-caption text-brand-strong">Now</p>}
                 </div>
               </li>
@@ -81,27 +96,39 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
         </ol>
 
         <h2 className="text-heading px-4 pb-2">Items</h2>
-        <ul>
-          {order.order_items.map((item) => {
-            const addons = (item.addons as { name: string }[]).map((a) => a.name);
-            const options = [item.size_name, ...addons].filter(Boolean).join(" · ");
-            return (
-              <li key={item.id} className="flex items-start gap-2 border-b border-border px-4 py-3">
-                <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                  <span>
-                    {item.name_snapshot} <span className="text-muted">×{item.qty}</span>
-                  </span>
-                  {options && <span className="text-caption text-muted">{options}</span>}
-                  {item.note && <span className="text-caption text-brand-strong">Note: {item.note}</span>}
-                </div>
-                <span className="tabular-nums">{formatVnd(item.unit_price * item.qty)}</span>
-              </li>
-            );
-          })}
-        </ul>
+        {rounds.map((round, r) => {
+          const [pillLabel, pillTone] = PILL[round.status as keyof typeof PILL];
+          return (
+            <section key={round.id} aria-label={`Round ${r + 1}`}>
+              {rounds.length > 1 && (
+                <p className="text-caption bg-surface px-4 py-1.5 text-muted">
+                  Round {r + 1} · #{round.order_no} · {formatTime(round.created_at)}
+                </p>
+              )}
+              <ul>
+                {round.order_items.map((item) => {
+                  const addons = (item.addons as { name: string }[]).map((a) => a.name);
+                  const options = [item.size_name, ...addons].filter(Boolean).join(" · ");
+                  return (
+                    <li key={item.id} className="flex items-start gap-2 border-b border-border px-4 py-3">
+                      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                        <span>
+                          {item.name_snapshot} <span className="text-muted">×{item.qty}</span>
+                        </span>
+                        {options && <span className="text-caption text-muted">{options}</span>}
+                        {item.note && <span className="text-caption text-brand-strong">Note: {item.note}</span>}
+                      </div>
+                      <span className={`text-caption rounded-full px-2.5 py-0.5 ${pillTone}`}>{pillLabel}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+          );
+        })}
         <div className="text-heading flex px-4 py-3">
-          <span className="flex-1">Total</span>
-          <span className="tabular-nums">{formatVnd(order.total)}</span>
+          <span className="flex-1">{rounds.length > 1 ? "Table total" : "Total"}</span>
+          <span className="tabular-nums">{formatVnd(rounds.reduce((n, o) => n + o.total, 0))}</span>
         </div>
       </div>
 

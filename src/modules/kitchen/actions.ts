@@ -27,14 +27,16 @@ export async function advanceOrder(orderId: string, from: From): Promise<Advance
     .update({ status: to })
     .eq("id", orderId)
     .eq("status", parsed.data.from)
-    .select("id");
+    .select("id, session_id");
   if (error) {
     console.error("advanceOrder failed:", error.message);
     return { ok: false, message: "Couldn't update the order. Try again." };
   }
   if (!data.length) return { ok: false, message: "This order was already updated on another screen." };
 
-  // The guest's status page re-reads the order when it hears this (a forged message can't fake a status).
-  await broadcast(`order:${orderId}`, "status", { status: to });
+  // The guest's status page re-reads the order(s) when it hears this (a forged message can't fake a
+  // status). Session orders are shown together as rounds, so their page listens on the session.
+  const sessionId = data[0].session_id;
+  await broadcast(sessionId ? `session:${sessionId}` : `order:${orderId}`, "status", { status: to });
   return { ok: true, status: to };
 }

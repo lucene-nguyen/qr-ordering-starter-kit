@@ -53,7 +53,15 @@ export function CartView({ tableCode, tableLabel, cart }: { tableCode: string; t
           <p className="text-title">Your cart is empty</p>
           <p className="text-muted">Add a few dishes and they&apos;ll show up here for everyone at the table.</p>
         </div>
-        <div className="px-4 pt-3.5 pb-7">
+        <div className="flex flex-col gap-2.5 px-4 pt-3.5 pb-7">
+          {cart.latestOrderId && (
+            <Link
+              href={`/t/${tableCode}/order/${cart.latestOrderId}`}
+              className="flex h-[52px] items-center justify-center gap-2 rounded-md bg-brand font-semibold text-white hover:bg-brand-strong"
+            >
+              <Icon name="flame" /> Track your order
+            </Link>
+          )}
           <Link href={menu} className="flex h-[52px] items-center justify-center rounded-md border border-border font-semibold hover:bg-surface">
             Browse the menu
           </Link>

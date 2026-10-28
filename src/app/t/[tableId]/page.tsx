@@ -48,7 +48,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
   return (
     <main className="mx-auto min-h-dvh max-w-[480px]">
       <RefreshOnTableUpdate table="menu_items" />
-      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} event="cart" delayMs={300} />
+      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart"]} />
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
@@ -119,7 +119,12 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
           ))}
         </>
       )}
-      <CartBar tableCode={table.code} count={cartCount(cart.lines)} total={cartTotal(cart.lines)} />
+      <CartBar
+        tableCode={table.code}
+        count={cartCount(cart.lines)}
+        total={cartTotal(cart.lines)}
+        latestOrderId={cart.latestOrderId}
+      />
     </main>
   );
 }

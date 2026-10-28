@@ -18,7 +18,7 @@ export async function getSessionCart(sessionId: string, guestId: string) {
       .order("created_at", { referencedTable: "cart_items" })
       .order("joined_at", { referencedTable: "session_guests" })
       .single(),
-    db.from("orders").select("total").eq("session_id", sessionId).neq("status", "cancelled"),
+    db.from("orders").select("id, total").eq("session_id", sessionId).neq("status", "cancelled").order("created_at"),
   ]);
   if (error) throw error;
 
@@ -48,10 +48,14 @@ export async function getSessionCart(sessionId: string, guestId: string) {
     me: names.get(guestId) ?? "You",
     others: session.session_guests.filter((g) => g.id !== guestId).map((g) => g.display_name),
     alreadyOrdered: (orders ?? []).reduce((n, o) => n + o.total, 0),
+    latestOrderId: orders?.at(-1)?.id ?? null, // for "Track your order"
   };
 }
 
 export type SessionCart = Awaited<ReturnType<typeof getSessionCart>>;
+
+const ORDER_SELECT =
+  "id, order_no, status, total, created_at, session_id, tables(code, label), order_items(id, name_snapshot, unit_price, size_name, addons, note, qty)";
 
 /**
  * One order with its items, for the guest's status screen. Guests have no RLS access to orders,
@@ -59,13 +63,19 @@ export type SessionCart = Awaited<ReturnType<typeof getSessionCart>>;
  */
 export async function getOrder(id: string) {
   if (!z.uuid().safeParse(id).success) return null;
+  const { data, error } = await createAdminClient().from("orders").select(ORDER_SELECT).eq("id", id).maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+/** Every round of a table session, oldest first (cancelled ones left out). */
+export async function getSessionOrders(sessionId: string) {
   const { data, error } = await createAdminClient()
     .from("orders")
-    .select(
-      "id, order_no, status, total, created_at, tables(code, label), order_items(id, name_snapshot, unit_price, size_name, addons, note, qty)",
-    )
-    .eq("id", id)
-    .maybeSingle();
+    .select(ORDER_SELECT)
+    .eq("session_id", sessionId)
+    .neq("status", "cancelled")
+    .order("created_at");
   if (error) throw error;
   return data;
 }

@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Your order · TableTap" };
 type Props = { params: Promise<{ tableId: string }> };
 
 // 03 · Shared cart. Server-rendered from the database; other phones' changes arrive as a
-// broadcast on session:<id> and refresh this page (300 ms debounce).
+// broadcast on session:<id> and refresh this page (throttled, see realtime-refresh).
 export default async function CartPage({ params }: Props) {
   const { tableId } = await params;
   const table = await getTableByCode(tableId);
@@ -22,7 +22,7 @@ export default async function CartPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
-      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} event="cart" delayMs={300} />
+      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart"]} />
       <CartView tableCode={table.code} tableLabel={table.label} cart={cart} />
     </main>
   );

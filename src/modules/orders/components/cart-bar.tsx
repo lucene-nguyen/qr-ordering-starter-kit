@@ -2,9 +2,34 @@ import Link from "next/link";
 import { Icon } from "@/lib/icons";
 import { formatVnd } from "@/lib/money";
 
-/** Dark "View cart" bar pinned to the bottom of the menu while the shared cart has items. */
-export function CartBar({ tableCode, count, total }: { tableCode: string; count: number; total: number }) {
-  if (count === 0) return null;
+/**
+ * Bottom bar of the menu: "View cart" while the shared cart has items, otherwise "Track your order"
+ * once the table has sent a round.
+ */
+export function CartBar({
+  tableCode,
+  count,
+  total,
+  latestOrderId,
+}: {
+  tableCode: string;
+  count: number;
+  total: number;
+  latestOrderId: string | null;
+}) {
+  if (count === 0) {
+    if (!latestOrderId) return null;
+    return (
+      <div className="sticky bottom-0 border-t border-border bg-bg px-4 pt-3.5 pb-7">
+        <Link
+          href={`/t/${tableCode}/order/${latestOrderId}`}
+          className="flex h-[52px] items-center justify-center gap-2 rounded-md border border-border font-semibold hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand"
+        >
+          <Icon name="flame" /> Track your order
+        </Link>
+      </div>
+    );
+  }
   return (
     <div className="sticky bottom-0 border-t border-border bg-bg px-4 pt-3.5 pb-7">
       <Link
