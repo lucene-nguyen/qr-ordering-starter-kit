@@ -17,7 +17,10 @@ function tlv(id: string, value: string) {
   return id + String(value.length).padStart(2, "0") + value;
 }
 
-/** Banking apps accept plain ASCII in the transfer note: "Tbl05 Phở" → "TBL05 PHO", max 25 chars. */
+/**
+ * Only cleans text for banking apps (plain upper-case ASCII, max 25 chars): "Tbl05 Phở" → "TBL05 PHO".
+ * It never builds a reference – the note comes from `payments.reference` in the database.
+ */
 export function transferNote(text: string): string {
   return text
     .normalize("NFD")
@@ -33,8 +36,8 @@ export function transferNote(text: string): string {
 export type VietQrInput = {
   bin: string; // NAPAS bank id, e.g. "970436" (Vietcombank)
   accountNo: string;
-  amount: number; // whole VND
-  note: string; // e.g. "TBL05 A0421"
+  amount: number; // whole VND – payments.amount from the database
+  note: string; // payments.reference from the database, e.g. "TBL05 A0421"
 };
 
 /** The string to encode in the guest's QR: transfer `amount` to the account with `note`. */

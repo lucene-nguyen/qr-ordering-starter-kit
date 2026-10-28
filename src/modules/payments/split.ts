@@ -3,7 +3,11 @@
 /**
  * Splits `total` VND between `people`: every share is rounded down to 1.000đ and the last person
  * pays the rest, so the shares always add up to exactly `total`.
- * The database (request_payment) applies the same rule one payer at a time: each guest pays
+ *
+ * This is a COPY of the rule in the database (request_payment), kept to test the rule and for
+ * server-side previews. The DATABASE IS THE SOURCE OF TRUTH: what a guest pays (and what goes into
+ * the VietQR code) is always `payments.amount` returned by request_payment, never this function's
+ * result, and never computed on the client. The database applies it one payer at a time:
  * `splitEvenly(stillOpen, peopleNotPaidYet)[0]`.
  */
 export function splitEvenly(total: number, people: number): number[] {

@@ -13,7 +13,7 @@ cp .env.example .env.local   # fill in Supabase keys when Phase 1 needs them
 npm run dev                  # http://localhost:3000
 ```
 
-Requires Node.js 20.9 or newer.
+Requires Node.js 22.18 or newer (or 23.6+): `npm test` runs the TypeScript unit tests directly with `node --test`, which needs built-in type stripping.
 
 ## Docs
 
