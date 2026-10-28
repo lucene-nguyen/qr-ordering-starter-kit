@@ -6,6 +6,7 @@ import { formatVnd } from "@/lib/money";
 import { DishPhoto } from "@/modules/menu/components/dish-row";
 import { getMenuItem } from "@/modules/menu/queries";
 import { ItemOrderForm } from "@/modules/orders/components/item-order-form";
+import { getGuest } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
 
 type Props = { params: Promise<{ tableId: string; itemId: string }> };
@@ -16,6 +17,7 @@ export default async function ItemPage({ params }: Props) {
   const [table, item] = await Promise.all([getTableByCode(tableId), getMenuItem(itemId)]);
   if (!table) notFound();
   if (!item) redirect(`/t/${table.code}`); // stale link to a removed dish: back to the menu
+  if (!(await getGuest(table))) redirect(`/t/${table.code}`); // not joined yet: the menu shows 00 · Join
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">

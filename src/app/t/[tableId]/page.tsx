@@ -5,7 +5,10 @@ import { RefreshOnTableUpdate } from "@/lib/realtime-refresh";
 import { DishRow } from "@/modules/menu/components/dish-row";
 import { getMenu } from "@/modules/menu/queries";
 import { CartBar } from "@/modules/orders/components/cart-bar";
+import { JoinScreen } from "@/modules/table-session/components/join-screen";
+import { getGuest, getOpenSession } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
+import { formatTime } from "@/lib/time";
 
 type Props = {
   params: Promise<{ tableId: string }>;
@@ -23,6 +26,19 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
   const [table, menu] = await Promise.all([getTableByCode(tableId), getMenu(search)]);
   if (!table) notFound();
 
+  const guest = await getGuest(table);
+  if (!guest) {
+    const open = await getOpenSession(table.id);
+    return (
+      <JoinScreen
+        tableCode={table.code}
+        tableLabel={table.label}
+        openedAt={open ? formatTime(open.openedAt) : null}
+        guestNames={open?.guestNames ?? []}
+      />
+    );
+  }
+
   const itemHref = (id: string) => `/t/${table.code}/item/${id}`;
   const popular = menu.flatMap((c) => c.menu_items.filter((i) => i.is_popular));
 
@@ -32,7 +48,7 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-caption text-muted">Welcome</p>
+            <p className="text-caption text-muted">Welcome, {guest.displayName}</p>
             {/* shortcut: restaurant name is fixed until restaurant_settings lands (Phase 5) */}
             <h1 className="text-display">Phở Mây Kitchen</h1>
           </div>
