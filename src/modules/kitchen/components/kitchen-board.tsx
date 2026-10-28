@@ -1,5 +1,7 @@
 "use client";
 
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import { Icon } from "@/lib/icons";
 import { createBrowserAuthClient } from "@/lib/supabase/auth-browser";
@@ -58,6 +60,7 @@ export function KitchenBoard({
   initialDishes: DishAvailability[];
   timeZone: string;
 }) {
+  const router = useRouter();
   const [orders, setOrders] = useState(() => byId(initialOrders));
   const [dishes, setDishes] = useState(initialDishes);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -113,28 +116,55 @@ export function KitchenBoard({
     };
     resyncRef.current = resync;
 
-    const channel = supabase
-      .channel("kitchen")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, async (payload) => {
-        const id = (payload.new as { id?: string }).id;
-        if (!id) return;
-        const order = await fetchOrder(supabase, id).catch(() => null); // with its items
-        if (!order) return;
-        upsert(order);
-        if (payload.eventType === "INSERT" && isOpen(order)) announce(order.id);
-      })
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (payload) => {
-        const { id, is_available } = payload.new as DishAvailability; // sold-out toggled on another screen
-        setDishes((list) => list.map((d) => (d.id === id ? { ...d, is_available } : d)));
-      })
-      .subscribe((status) => {
-        if (status === "SUBSCRIBED") {
-          void resync(); // first join and every reconnect: catch up on anything missed
-          setConn((c) => (c === "off" ? "back" : "on"));
-        } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-          setConn("off");
-        }
-      });
+    // Keep the Realtime socket on the staff JWT when the session token is refreshed (~hourly);
+    // otherwise it would fall back to anon and RLS would silently drop every orders event.
+    const {
+      data: { subscription: authListener },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if ((event === "TOKEN_REFRESHED" || event === "SIGNED_IN") && session) {
+        void supabase.realtime.setAuth(session.access_token);
+      }
+    });
+
+    let cancelled = false;
+    let channel: RealtimeChannel | null = null;
+    void (async () => {
+      // The socket must join with the staff JWT, not anon: @supabase/ssr loads the session from
+      // cookies asynchronously, so wait for it and hand the token to Realtime before subscribing.
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (cancelled) return;
+      if (!session) {
+        router.replace("/staff/sign-in?next=/staff/kitchen");
+        return;
+      }
+      await supabase.realtime.setAuth(session.access_token);
+      if (cancelled) return;
+
+      channel = supabase
+        .channel("kitchen")
+        .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, async (payload) => {
+          const id = (payload.new as { id?: string }).id;
+          if (!id) return;
+          const order = await fetchOrder(supabase, id).catch(() => null); // with its items
+          if (!order) return;
+          upsert(order);
+          if (payload.eventType === "INSERT" && isOpen(order)) announce(order.id);
+        })
+        .on("postgres_changes", { event: "UPDATE", schema: "public", table: "menu_items" }, (payload) => {
+          const { id, is_available } = payload.new as DishAvailability; // sold-out toggled on another screen
+          setDishes((list) => list.map((d) => (d.id === id ? { ...d, is_available } : d)));
+        })
+        .subscribe((status) => {
+          if (status === "SUBSCRIBED") {
+            void resync(); // first join and every reconnect: catch up on anything missed
+            setConn((c) => (c === "off" ? "back" : "on"));
+          } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+            setConn("off");
+          }
+        });
+    })();
 
     const offline = () => setConn("off");
     // Network back but the socket never dropped (so no new SUBSCRIBED): resync ourselves.
@@ -144,9 +174,11 @@ export function KitchenBoard({
     return () => {
       window.removeEventListener("offline", offline);
       window.removeEventListener("online", online);
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      authListener.unsubscribe();
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [upsert, announce]);
+  }, [upsert, announce, router]);
 
   useEffect(() => {
     if (conn !== "back") return;
