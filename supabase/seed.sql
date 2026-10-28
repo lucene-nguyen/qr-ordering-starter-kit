@@ -54,3 +54,46 @@ from (values
   ('Cà phê sữa đá', 'Less sweet', 0, 1), ('Cà phê sữa đá', 'Extra shot', 10000, 2)
 ) as a(item, name, extra_price, sort)
 join public.menu_items m on m.name = a.item;
+
+-- Phase 3: staff profiles. Create the accounts first in Dashboard → Authentication → Users
+-- (Auto Confirm User); passwords never go in the repo. Rows appear only for emails that exist.
+insert into public.staff_profiles (user_id, display_name, role)
+select u.id, p.display_name, p.role
+from (values
+  ('hoa@phomay.example', 'Hoa Nguyen', 'owner'),
+  ('an@phomay.example', 'An Tran', 'cashier'),
+  ('bep@phomay.example', 'Bếp chính', 'kitchen')
+) as p(email, display_name, role)
+join auth.users u on u.email = p.email
+on conflict (user_id) do update set display_name = excluded.display_name, role = excluded.role;
+
+-- Phase 3: open orders for the kitchen board, placed through place_order so they are priced
+-- exactly like real ones. lines: [{name, size?, addons?: [names], note?, qty}]
+create function pg_temp.lines(p jsonb) returns jsonb language sql as $$
+  select jsonb_agg(jsonb_build_object(
+    'menu_item_id', m.id,
+    'size_id', (select s.id from public.menu_item_sizes s where s.menu_item_id = m.id
+                order by (s.name = l->>'size') desc, s.sort limit 1),
+    'addon_ids', coalesce((select jsonb_agg(a.id) from public.menu_item_addons a
+                           where a.menu_item_id = m.id
+                             and a.name in (select jsonb_array_elements_text(coalesce(l->'addons', '[]'::jsonb)))), '[]'::jsonb),
+    'note', coalesce(l->>'note', ''),
+    'qty', (l->>'qty')::int))
+  from jsonb_array_elements(p) l
+  join public.menu_items m on m.name = l->>'name'
+$$;
+
+do $$
+declare o jsonb;
+begin
+  o := public.place_order('08', gen_random_uuid(), pg_temp.lines('[{"name":"Phở bò tái","size":"Large","qty":3}]'));
+  update public.orders set status = 'preparing', created_at = now() - interval '12 minutes' where id = (o->>'id')::uuid;
+
+  o := public.place_order('11', gen_random_uuid(), pg_temp.lines('[{"name":"Cơm tấm sườn","qty":2},{"name":"Bún bò Huế","qty":2},{"name":"Cà phê sữa đá","qty":2}]'));
+  update public.orders set status = 'ready', created_at = now() - interval '9 minutes' where id = (o->>'id')::uuid;
+
+  o := public.place_order('01', gen_random_uuid(), pg_temp.lines('[{"name":"Trà đá chanh","addons":["Less sugar"],"qty":2},{"name":"Gỏi cuốn tôm","qty":1}]'));
+  update public.orders set created_at = now() - interval '4 minutes' where id = (o->>'id')::uuid;
+
+  perform public.place_order('02', gen_random_uuid(), pg_temp.lines('[{"name":"Bún chả Hà Nội","qty":1},{"name":"Cơm tấm sườn","note":"Extra pickles","qty":1}]'));
+end $$;

@@ -15,6 +15,7 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - [ ] End-to-end flow works: scan QR → order → kitchen sees it instantly → pay via VietQR → owner sees revenue.
 - [ ] Deployed on Vercel with near-zero running cost (domain only).
 - [ ] Each phase has notes on the lessons learned (`docs/lessons/`).
+- [ ] Separate Supabase projects for dev and prod before real guests use the app (today both use `tabletap`).
 
 ---
 

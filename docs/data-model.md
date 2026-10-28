@@ -12,8 +12,9 @@ Conventions: `uuid` primary keys (`gen_random_uuid()`), `timestamptz` in UTC, mo
 |---|---|
 | 1 | `categories`, `menu_items`, `tables` (migration `20261028000000_phase1_menu.sql`) |
 | 2 | `menu_item_sizes`, `menu_item_addons`, `orders`, `order_items`, function `place_order` (migration `20261028100000_phase2_orders.sql`) |
+| 3 | `staff_profiles`, `private.staff_role()`, staff RLS + column grants, realtime publication (`20261028200000_phase3_staff_kitchen.sql`, `20261028201000_private_staff_role.sql`; see ADR 0002) |
 | 4 | `table_sessions`, `session_guests`, `cart_items` |
-| 5 | `payments`, `staff_profiles`, `restaurant_settings`; `orders.session_id` becomes required |
+| 5 | `payments`, `restaurant_settings`; `orders.session_id` becomes required |
 | 6 | views `daily_revenue`, `item_sales` |
 
 ```sql
@@ -153,7 +154,7 @@ create table restaurant_settings (
 - `orders`, `order_items`: `select` for staff roles; guests read their own session's orders through Server Actions only.
 - `table_sessions`, `payments`: staff only (`owner`, `cashier`).
 - Reports views: `owner` only.
-- Helper: `create function public.staff_role() returns text` reading `staff_profiles` for `auth.uid()`.
+- Helper: `private.staff_role()` reading `staff_profiles` for `auth.uid()` (Phase 3). Staff `update` is limited per column: `orders.status`, `menu_items.is_available`.
 
 ## Seed data
 

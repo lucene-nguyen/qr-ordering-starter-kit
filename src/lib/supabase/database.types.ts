@@ -185,6 +185,12 @@ export type Database = {
           },
         ];
       };
+      staff_profiles: {
+        Row: { display_name: string; role: string; user_id: string };
+        Insert: { display_name: string; role: string; user_id: string };
+        Update: { display_name?: string; role?: string; user_id?: string };
+        Relationships: [];
+      };
       tables: {
         Row: { code: string; id: string; is_active: boolean; label: string };
         Insert: { code: string; id?: string; is_active?: boolean; label: string };
