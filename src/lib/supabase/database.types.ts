@@ -1,6 +1,11 @@
 // Generated from the Supabase schema (Supabase MCP `generate_typescript_types` or
 // `npx supabase gen types typescript --project-id sxwcsxyalzblvkhtlola`). Regenerate after each migration.
 
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
+type ItemOption = { extra_price: number; id: string; menu_item_id: string; name: string; sort: number };
+type ItemOptionInsert = { extra_price?: number; id?: string; menu_item_id: string; name: string; sort?: number };
+
 export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18";
@@ -12,6 +17,34 @@ export type Database = {
         Insert: { id?: string; name: string; sort?: number };
         Update: { id?: string; name?: string; sort?: number };
         Relationships: [];
+      };
+      menu_item_addons: {
+        Row: ItemOption;
+        Insert: ItemOptionInsert;
+        Update: Partial<ItemOption>;
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_addons_menu_item_id_fkey";
+            columns: ["menu_item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      menu_item_sizes: {
+        Row: ItemOption;
+        Insert: ItemOptionInsert;
+        Update: Partial<ItemOption>;
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_sizes_menu_item_id_fkey";
+            columns: ["menu_item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       menu_items: {
         Row: {
@@ -60,6 +93,98 @@ export type Database = {
           },
         ];
       };
+      order_items: {
+        Row: {
+          addons: Json;
+          id: string;
+          menu_item_id: string;
+          name_snapshot: string;
+          note: string | null;
+          order_id: string;
+          qty: number;
+          size_name: string | null;
+          unit_price: number;
+        };
+        Insert: {
+          addons?: Json;
+          id?: string;
+          menu_item_id: string;
+          name_snapshot: string;
+          note?: string | null;
+          order_id: string;
+          qty: number;
+          size_name?: string | null;
+          unit_price: number;
+        };
+        Update: {
+          addons?: Json;
+          id?: string;
+          menu_item_id?: string;
+          name_snapshot?: string;
+          note?: string | null;
+          order_id?: string;
+          qty?: number;
+          size_name?: string | null;
+          unit_price?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey";
+            columns: ["menu_item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      orders: {
+        Row: {
+          created_at: string;
+          id: string;
+          idempotency_key: string;
+          order_no: string;
+          session_id: string | null;
+          status: Database["public"]["Enums"]["order_status"];
+          table_id: string;
+          total: number;
+        };
+        Insert: {
+          created_at?: string;
+          id?: string;
+          idempotency_key: string;
+          order_no?: string;
+          session_id?: string | null;
+          status?: Database["public"]["Enums"]["order_status"];
+          table_id: string;
+          total: number;
+        };
+        Update: {
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string;
+          order_no?: string;
+          session_id?: string | null;
+          status?: Database["public"]["Enums"]["order_status"];
+          table_id?: string;
+          total?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "orders_table_id_fkey";
+            columns: ["table_id"];
+            isOneToOne: false;
+            referencedRelation: "tables";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       tables: {
         Row: { code: string; id: string; is_active: boolean; label: string };
         Insert: { code: string; id?: string; is_active?: boolean; label: string };
@@ -68,8 +193,15 @@ export type Database = {
       };
     };
     Views: { [_ in never]: never };
-    Functions: { [_ in never]: never };
-    Enums: { [_ in never]: never };
+    Functions: {
+      place_order: {
+        Args: { p_idempotency_key: string; p_lines: Json; p_table_code: string };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      order_status: "pending" | "preparing" | "ready" | "served" | "cancelled";
+    };
     CompositeTypes: { [_ in never]: never };
   };
 };
