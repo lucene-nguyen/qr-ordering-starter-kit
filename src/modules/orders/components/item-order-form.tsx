@@ -10,7 +10,15 @@ import { Stepper } from "./stepper";
 const pill = "text-caption rounded-full px-2.5 py-0.5";
 
 /** 02 · Item: size, add-ons, note and quantity, then "Add to cart". */
-export function ItemOrderForm({ tableCode, item }: { tableCode: string; item: MenuItemWithOptions }) {
+export function ItemOrderForm({
+  tableCode,
+  item,
+  viewOnly = false,
+}: {
+  tableCode: string;
+  item: MenuItemWithOptions;
+  viewOnly?: boolean; // table not open yet (00b → View menu only)
+}) {
   const router = useRouter();
   const sizes = item.menu_item_sizes;
   const addons = item.menu_item_addons;
@@ -112,10 +120,10 @@ export function ItemOrderForm({ tableCode, item }: { tableCode: string; item: Me
         <button
           type="button"
           onClick={add}
-          disabled={soldOut || pending}
+          disabled={soldOut || viewOnly || pending}
           className="h-[52px] flex-1 rounded-md bg-brand px-4 font-semibold text-white hover:bg-brand-strong disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
-          {soldOut ? "Sold out" : pending ? "Adding…" : <>Add to cart · <span className="tabular-nums">{formatVnd(unitPrice * qty)}</span></>}
+          {soldOut ? "Sold out" : viewOnly ? "View only" : pending ? "Adding…" : <>Add to cart · <span className="tabular-nums">{formatVnd(unitPrice * qty)}</span></>}
         </button>
       </div>
     </>

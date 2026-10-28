@@ -26,6 +26,20 @@ export async function getGuest(table: Table): Promise<Guest | null> {
   return { guestId: data.id, displayName: data.display_name, sessionId: s.id };
 }
 
+/** True when this phone still carries a guest cookie for the table (it may belong to a closed session). */
+export async function hasGuestCookie() {
+  return (await cookies()).has(GUEST_COOKIE);
+}
+
+/** Forget this phone's guest at a table, e.g. after staff closed its session. */
+export async function clearGuestCookie(tableCode: string) {
+  (await cookies()).delete({ name: GUEST_COOKIE, path: `/t/${tableCode}` });
+}
+
+/**
+ * The value is the session_guests id, and every guest row belongs to exactly one session, so the
+ * cookie is tied to that session: once staff close it, the cookie stops working everywhere.
+ */
 export async function setGuestCookie(tableCode: string, guestId: string) {
   (await cookies()).set(GUEST_COOKIE, guestId, {
     httpOnly: true,

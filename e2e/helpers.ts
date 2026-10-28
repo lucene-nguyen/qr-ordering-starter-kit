@@ -29,12 +29,14 @@ export async function fillSecret(field: Locator, value: string) {
   }
 }
 
-/** Signs in through the real S0 form. */
+/** Signs in through the real S0 form and waits until the app has moved on from sign-in. */
 export async function signIn(page: Page, acc: Account, next?: string) {
   await page.goto(next ? `/staff/sign-in?next=${encodeURIComponent(next)}` : "/staff/sign-in");
   await page.getByLabel("Email").fill(acc.email);
   await fillSecret(page.getByLabel("Password"), acc.password);
   await page.getByRole("button", { name: "Sign in" }).click();
+  // Without this, the next goto() can cancel the sign-in request before its cookie is set.
+  await page.waitForURL((url) => !url.pathname.startsWith("/staff/sign-in"));
 }
 
 /** Signs out this browser only (scope "local"), so test runs don't pile up sessions. */

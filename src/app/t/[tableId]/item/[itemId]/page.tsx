@@ -6,7 +6,7 @@ import { formatVnd } from "@/lib/money";
 import { DishPhoto } from "@/modules/menu/components/dish-row";
 import { getMenuItem } from "@/modules/menu/queries";
 import { ItemOrderForm } from "@/modules/orders/components/item-order-form";
-import { getGuest } from "@/modules/table-session/guest";
+import { getGuest, getOpenSession } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
 
 type Props = { params: Promise<{ tableId: string; itemId: string }> };
@@ -17,7 +17,10 @@ export default async function ItemPage({ params }: Props) {
   const [table, item] = await Promise.all([getTableByCode(tableId), getMenuItem(itemId)]);
   if (!table) notFound();
   if (!item) redirect(`/t/${table.code}`); // stale link to a removed dish: back to the menu
-  if (!(await getGuest(table))) redirect(`/t/${table.code}`); // not joined yet: the menu shows 00 · Join
+  // Not joined: if the table is open, join first (the menu shows 00); if it isn't, look but don't order.
+  const viewOnly = !(await getGuest(table));
+  if (viewOnly && (await getOpenSession(table.id))) redirect(`/t/${table.code}`);
+  const menuHref = viewOnly ? `/t/${table.code}?view=menu` : `/t/${table.code}`;
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[480px] flex-col">
@@ -25,7 +28,7 @@ export default async function ItemPage({ params }: Props) {
       <div className="relative">
         <DishPhoto size={200} className="h-[280px] w-full" />
         <Link
-          href={`/t/${table.code}`}
+          href={menuHref}
           aria-label="Back to menu"
           className="absolute top-4 left-4 grid size-10 place-items-center rounded-full bg-bg shadow-md focus-visible:outline-2 focus-visible:outline-brand"
         >
@@ -42,7 +45,7 @@ export default async function ItemPage({ params }: Props) {
           </span>
         )}
       </div>
-      <ItemOrderForm tableCode={table.code} item={item} />
+      <ItemOrderForm tableCode={table.code} item={item} viewOnly={viewOnly} />
     </main>
   );
 }

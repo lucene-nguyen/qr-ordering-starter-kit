@@ -7,14 +7,16 @@ import { getMenu } from "@/modules/menu/queries";
 import { CartBar } from "@/modules/orders/components/cart-bar";
 import { getSessionCart } from "@/modules/orders/queries";
 import { cartCount, cartTotal } from "@/modules/orders/types";
+import { ClosedScreen } from "@/modules/table-session/components/closed-screen";
+import { ForgetStaleGuest } from "@/modules/table-session/components/forget-stale-guest";
 import { JoinScreen } from "@/modules/table-session/components/join-screen";
-import { getGuest, getOpenSession } from "@/modules/table-session/guest";
+import { getGuest, getOpenSession, hasGuestCookie } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
 import { formatTime } from "@/lib/time";
 
 type Props = {
   params: Promise<{ tableId: string }>;
-  searchParams: Promise<{ q?: string | string[] }>;
+  searchParams: Promise<{ q?: string | string[]; view?: string | string[] }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -23,36 +25,49 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function TableMenuPage({ params, searchParams }: Props) {
-  const [{ tableId }, { q }] = await Promise.all([params, searchParams]);
+  const [{ tableId }, { q, view }] = await Promise.all([params, searchParams]);
   const search = typeof q === "string" ? q.trim() : "";
   const [table, menu] = await Promise.all([getTableByCode(tableId), getMenu(search)]);
   if (!table) notFound();
 
+  // Who is looking: a guest of the open session, someone who still has to join it (00), or – when
+  // staff haven't opened the table – nobody can order (00b, with a read-only menu on request).
   const guest = await getGuest(table);
+  const viewOnly = !guest;
   if (!guest) {
+    // A cookie from a session staff closed: drop it, then show the right screen.
+    const forget = (await hasGuestCookie()) && <ForgetStaleGuest tableCode={table.code} />;
     const open = await getOpenSession(table.id);
-    return (
-      <JoinScreen
-        tableCode={table.code}
-        tableLabel={table.label}
-        openedAt={open ? formatTime(open.openedAt) : null}
-        guestNames={open?.guestNames ?? []}
-      />
-    );
+    if (open) {
+      return (
+        <>
+          {forget}
+          <JoinScreen tableCode={table.code} tableLabel={table.label} openedAt={formatTime(open.openedAt)} guestNames={open.guestNames} />
+        </>
+      );
+    }
+    if (view !== "menu") {
+      return (
+        <>
+          {forget}
+          <ClosedScreen tableCode={table.code} />
+        </>
+      );
+    }
   }
 
-  const cart = await getSessionCart(guest.sessionId, guest.guestId);
+  const cart = guest ? await getSessionCart(guest.sessionId, guest.guestId) : null;
   const itemHref = (id: string) => `/t/${table.code}/item/${id}`;
   const popular = menu.flatMap((c) => c.menu_items.filter((i) => i.is_popular));
 
   return (
     <main className="mx-auto min-h-dvh max-w-[480px]">
       <RefreshOnTableUpdate table="menu_items" />
-      <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart", "closed"]} />
+      {guest && <RefreshOnBroadcast channel={`session:${guest.sessionId}`} events={["cart", "closed"]} />}
       <header className="flex flex-col gap-3 px-4 pt-4 pb-2">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-caption text-muted">Welcome, {guest.displayName}</p>
+            <p className="text-caption text-muted">{guest ? `Welcome, ${guest.displayName}` : "Welcome"}</p>
             {/* shortcut: restaurant name is fixed until restaurant_settings lands (Phase 5) */}
             <h1 className="text-display">Phở Mây Kitchen</h1>
           </div>
@@ -75,8 +90,14 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
             aria-label="Search dishes"
             className="h-full min-w-0 flex-1 bg-transparent text-text outline-none"
           />
+          {viewOnly && <input type="hidden" name="view" value="menu" />}
         </form>
       </header>
+      {viewOnly && (
+        <p className="text-caption mx-4 mt-1 flex items-start gap-2 rounded-md bg-surface p-3 text-muted">
+          <Icon name="info" size={16} /> View only. Ask staff to open your table to start ordering.
+        </p>
+      )}
 
       {search ? (
         <section>
@@ -119,12 +140,14 @@ export default async function TableMenuPage({ params, searchParams }: Props) {
           ))}
         </>
       )}
-      <CartBar
-        tableCode={table.code}
-        count={cartCount(cart.lines)}
-        total={cartTotal(cart.lines)}
-        latestOrderId={cart.latestOrderId}
-      />
+      {cart && (
+        <CartBar
+          tableCode={table.code}
+          count={cartCount(cart.lines)}
+          total={cartTotal(cart.lines)}
+          latestOrderId={cart.latestOrderId}
+        />
+      )}
     </main>
   );
 }

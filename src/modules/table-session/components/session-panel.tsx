@@ -31,6 +31,7 @@ export function SessionPanel({
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [reason, setReason] = useState("");
+  const [showPin, setShowPin] = useState(false); // hidden by default: the counter screen faces guests
   const s = table.session;
 
   const run = (action: () => Promise<SessionResult>) => {
@@ -67,7 +68,18 @@ export function SessionPanel({
         <>
           <div className="flex flex-col items-center gap-1 rounded-md bg-surface p-4 text-center">
             <span className="text-caption text-muted">Table PIN</span>
-            <span className="text-[40px] leading-[48px] font-bold tracking-[0.3em] tabular-nums">{s.pin}</span>
+            <span className="text-[40px] leading-[48px] font-bold tracking-[0.3em] tabular-nums" aria-live="polite">
+              {showPin ? s.pin : "••••"}
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowPin((v) => !v)}
+              aria-pressed={showPin}
+              aria-label={showPin ? `Hide the PIN of ${table.label}` : `Show the PIN of ${table.label}`}
+              className="rounded-sm border border-border bg-bg px-3 py-1.5 text-[13px] font-semibold hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand"
+            >
+              {showPin ? "Hide" : "Show"}
+            </button>
             <span className="text-caption text-muted">Read it out to guests when they join. It ends when the table closes.</span>
           </div>
           {s.idle && (
