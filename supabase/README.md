@@ -11,21 +11,32 @@ Two Supabase projects (split at the start of LEARNING-99):
   of truth**; both projects must end up with exactly these, in this order.
 - `seed.sql` – demo data matching the prototype (Phở Mây Kitchen, tables 01–12, sample orders,
   staff profiles for accounts that exist). **Dev only.**
+- `tests/` – SQL test scripts per phase (`phase5.sql` …). **Dev only.**
 
 ## Changing the schema
 
 1. **Write a new migration file** in `migrations/` (never edit one that was already applied).
-2. **Apply it to dev**:
+   - **Naming on 2026-10-28 only:** the existing files use made-up "hours" (`20261028300000` =
+     hour 30), so a migration created that day must sort after `20261028301000` – pick e.g.
+     `20261028400000_phase5_sessions_payments.sql` by hand. Do **not** run `supabase migration new`
+     that day: it stamps the real time (e.g. `20261028091600`), which sorts *before* Phase 4.
+   - **From 2026-10-29 on:** use `npx supabase migration new <name>` as usual.
+2. **Apply it to dev** (the only project ever linked – prod is never linked):
    ```bash
    npx supabase login                                      # once per machine
    npx supabase link --project-ref kozwhezqksupsstvunka    # once; asks for the dev DB password
-   npx supabase db push                                    # applies files in migrations/ not yet on dev
+   npx supabase db push --linked --dry-run                 # shows what would be applied
+   npx supabase db push --linked                           # applies files in migrations/ not yet on dev
+   npx supabase migration list --linked                    # local and remote columns must match
    ```
-   `db push` only reads `supabase/migrations/`; it never touches prod unless you link prod.
+   `db push` only reads `supabase/migrations/`. Pass `--linked` explicitly: the next major CLI
+   version will target a local database by default.
 3. **Regenerate types from dev** and commit them with the migration:
-   Supabase MCP `generate_typescript_types` (project `kozwhezqksupsstvunka`) →
-   `src/lib/supabase/database.types.ts`.
-4. **Test on dev**: SQL tests, `npm run test:e2e`, Security Advisor.
+   `npx supabase gen types typescript --linked > src/lib/supabase/database.types.ts`
+   (then put the "generated from DEV" header comment back on top).
+4. **Test on dev**: the SQL tests in `tests/` (paste into the dev SQL Editor; each file ends with
+   `ERROR: ALL_OK` when every check passed and rolls everything back), `npm run test:e2e`,
+   Security Advisor.
 5. **Prod – only after the owner approves**: apply the same file by hand (SQL Editor or a separate
    Claude session with the Supabase MCP), **with the same migration name as on dev**. Then run the
    Security Advisor on prod and check prod still matches dev (see "Comparing dev and prod").

@@ -1,4 +1,27 @@
 import type { Locator, Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import { assertDevDatabase } from "./guard";
+
+/**
+ * Runs `fn` while the DEV database has no restaurant_settings row (no bank details yet), then puts
+ * the row back exactly as it was – also when `fn` fails. Uses the secret key from .env.local.
+ */
+export async function withoutBankDetails(fn: () => Promise<void>) {
+  assertDevDatabase();
+  const db = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SECRET_KEY!, { auth: { persistSession: false } });
+  const { data: row, error } = await db.from("restaurant_settings").select("*").maybeSingle();
+  if (error) throw new Error(`Reading restaurant_settings failed: ${error.message}`);
+  const removed = await db.from("restaurant_settings").delete().eq("id", 1);
+  if (removed.error) throw new Error(`Removing restaurant_settings failed: ${removed.error.message}`);
+  try {
+    await fn();
+  } finally {
+    if (row) {
+      const restored = await db.from("restaurant_settings").insert(row);
+      if (restored.error) throw new Error(`Restoring restaurant_settings failed: ${restored.error.message}`);
+    }
+  }
+}
 
 export type Role = "owner" | "cashier" | "kitchen";
 export type Account = { email: string; password: string };
@@ -29,12 +52,14 @@ export async function fillSecret(field: Locator, value: string) {
   }
 }
 
-/** Signs in through the real S0 form. */
+/** Signs in through the real S0 form and waits until the app has moved on from sign-in. */
 export async function signIn(page: Page, acc: Account, next?: string) {
   await page.goto(next ? `/staff/sign-in?next=${encodeURIComponent(next)}` : "/staff/sign-in");
   await page.getByLabel("Email").fill(acc.email);
   await fillSecret(page.getByLabel("Password"), acc.password);
   await page.getByRole("button", { name: "Sign in" }).click();
+  // Without this, the next goto() can cancel the sign-in request before its cookie is set.
+  await page.waitForURL((url) => !url.pathname.startsWith("/staff/sign-in"));
 }
 
 /** Signs out this browser only (scope "local"), so test runs don't pile up sessions. */

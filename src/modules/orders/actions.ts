@@ -1,5 +1,6 @@
 "use server";
 
+import { writesBlocked } from "@/lib/db-env";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { broadcast } from "@/lib/realtime-notify";
@@ -50,12 +51,17 @@ function toGuestMessage(code: string) {
       return "Cart changed, check it again";
     case "CART_EMPTY":
       return "Your cart is empty.";
+    case "RATE_LIMITED":
+      return "You've sent 5 rounds in 10 minutes. Please ask our staff.";
   }
   console.error("cart action failed:", code);
   return "Something went wrong. Please try again.";
 }
 
 export async function addToCart(tableCode: string, line: CartLineInput): Promise<CartResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   const parsed = cartLineInput.safeParse(line);
   if (!parsed.success) return { ok: false, message: "Something in this dish looks wrong. Please try again." };
   const guest = await currentGuest(tableCode);
@@ -74,6 +80,9 @@ export async function addToCart(tableCode: string, line: CartLineInput): Promise
 
 /** +1 / −1 on a cart line (anyone at the table may change any line; deltas add up safely). */
 export async function changeQty(tableCode: string, itemId: string, delta: number): Promise<CartResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   if (!z.uuid().safeParse(itemId).success || !deltaInput.safeParse(delta).success) {
     return { ok: false, message: "Something went wrong. Please try again." };
   }
@@ -96,6 +105,9 @@ export async function changeQty(tableCode: string, itemId: string, delta: number
  * if someone already sent it, we return that order; if it changed, nothing is sent.
  */
 export async function placeRound(tableCode: string, cartVersion: number): Promise<PlaceResult> {
+  const blocked = writesBlocked(); // Preview pointing at the prod database: refuse to write
+  if (blocked) return { ok: false, message: blocked };
+
   if (!cartVersionInput.safeParse(cartVersion).success) return { ok: false, message: "Something went wrong. Please try again." };
   const guest = await currentGuest(tableCode);
   if (!guest) return { ok: false, message: SESSION_ENDED };

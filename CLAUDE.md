@@ -48,6 +48,7 @@ npm run dev        # http://localhost:3000
 npm run build      # must pass before a phase is marked done
 npm run lint
 npm run typecheck
+npm test           # unit tests (node --test, src/**/*.test.ts)
 npm run test:e2e   # Playwright against the DEV Supabase only (needs .env.test.local, see .env.test.example)
 ```
 

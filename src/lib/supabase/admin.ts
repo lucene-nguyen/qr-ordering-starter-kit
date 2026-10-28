@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
+import { env } from "@/lib/db-env";
 
 /**
  * Trusted server client with the secret key – it bypasses RLS. Use it only in Server Actions and
@@ -9,8 +10,8 @@ import type { Database } from "./database.types";
  */
 export function createAdminClient() {
   return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!,
+    env("NEXT_PUBLIC_SUPABASE_URL"),
+    env("SUPABASE_SECRET_KEY"),
     { auth: { persistSession: false, autoRefreshToken: false } },
   );
 }

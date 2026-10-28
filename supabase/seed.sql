@@ -68,6 +68,12 @@ from (values
 join auth.users u on u.email = p.email
 on conflict (user_id) do update set display_name = excluded.display_name, role = excluded.role;
 
+-- Phase 5: a DEMO bank account so VietQR shows on dev and in E2E. Not a real account – never on
+-- prod, where the owner enters the real one on O3 (until then guests pay at the counter).
+insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
+values ('Phở Mây Kitchen', '970436', '0000000000', 'PHO MAY KITCHEN')
+on conflict (id) do nothing;
+
 -- Phase 3: open orders for the kitchen board, placed through place_order so they are priced
 -- exactly like real ones. lines: [{name, size?, addons?: [names], note?, qty}]
 create function pg_temp.lines(p jsonb) returns jsonb language sql as $$

@@ -14,7 +14,7 @@ export function NoAccess({ title, description }: { title: string; description: s
       <p className="text-muted">{description}</p>
       <div className="flex gap-2">
         <Link href={STAFF_HOME} className="flex h-[42px] items-center rounded-md border border-border px-4 font-semibold hover:bg-surface">
-          Back to Kitchen
+          Back to my console
         </Link>
         <SignOutButton className="h-[42px] rounded-md bg-brand px-4 font-semibold text-white hover:bg-brand-strong" />
       </div>

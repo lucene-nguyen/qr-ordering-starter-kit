@@ -132,12 +132,18 @@ export default async function OrderStatusPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      <div className="sticky bottom-0 border-t border-border bg-bg px-4 pt-3.5 pb-7">
+      <div className="sticky bottom-0 flex gap-3 border-t border-border bg-bg px-4 pt-3.5 pb-7">
         <Link
           href={`/t/${tableId}`}
-          className="flex h-[52px] items-center justify-center rounded-md border border-border font-semibold hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand"
+          className="flex h-[52px] flex-1 items-center justify-center rounded-md border border-border font-semibold hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand"
         >
           Order more
+        </Link>
+        <Link
+          href={`/t/${tableId}/pay`}
+          className="flex h-[52px] flex-1 items-center justify-center rounded-md bg-brand font-semibold text-white hover:bg-brand-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          Request bill
         </Link>
       </div>
     </main>

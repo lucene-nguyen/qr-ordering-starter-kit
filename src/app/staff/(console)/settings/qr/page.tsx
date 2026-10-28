@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { NoAccess } from "@/modules/staff/components/no-access";
-import { SignOutButton } from "@/modules/staff/components/sign-out-button";
+import { SettingsTabs } from "@/modules/staff/components/settings-tabs";
 import { allowed, CAN, requireStaff } from "@/modules/staff/queries";
 import { PrintButton } from "@/modules/table-session/components/print-button";
 import { TableQrCard } from "@/modules/table-session/components/table-qr-card";
@@ -35,8 +35,8 @@ export default async function TablesQrPage() {
           <p className="text-muted">Each table has its own QR. Print the cards once.</p>
         </div>
         <PrintButton />
-        <SignOutButton className="h-[42px] rounded-md border border-border px-4 font-semibold hover:bg-surface" />
       </header>
+      <SettingsTabs current="/staff/settings/qr" />
       <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-3.5 print:grid-cols-3">
         {tables.map((t) => (
           <TableQrCard key={t.id} url={tableUrl(t.code, origin)} label={t.label} />

@@ -7,6 +7,7 @@ export type Staff = { userId: string; displayName: string; role: StaffRole };
 /** Who may do what. Pages and Server Actions check these; RLS checks again in the database. */
 export const CAN = {
   runKitchen: ["owner", "cashier", "kitchen"],
+  manageTables: ["owner", "cashier"],
   markSoldOut: ["owner", "cashier", "kitchen"],
   manageSettings: ["owner"],
 } as const satisfies Record<string, readonly StaffRole[]>;
@@ -19,11 +20,12 @@ export async function getStaff(): Promise<Staff | null> {
   const { data: auth } = await supabase.auth.getClaims();
   const userId = auth?.claims.sub;
   if (!userId) return null;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("staff_profiles")
     .select("display_name, role")
     .eq("user_id", userId)
     .maybeSingle();
+  if (error) throw error; // a failed query is not "no staff profile"
   return data ? { userId, displayName: data.display_name, role: data.role as StaffRole } : null;
 }
 
@@ -34,5 +36,5 @@ export async function requireStaff(): Promise<Staff> {
   return staff;
 }
 
-/** First page after signing in (the only console page in Phase 3). */
-export const STAFF_HOME = "/staff/kitchen";
+/** After signing in: /staff sends each role to its own screen (kitchen → Kitchen, others → Tables). */
+export const STAFF_HOME = "/staff";
