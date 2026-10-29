@@ -4,7 +4,7 @@ import { Icon } from "@/lib/icons";
 import { formatVnd } from "@/lib/money";
 import { BarChart } from "@/modules/reports/components/bar-chart";
 import {
-  bucketLabel, byCategory, GRAINS, grainOf, localToday, percentChange, perTable, RANGES, rangeOf, REPORT_TIMEZONE,
+  bucketLabel, byCategory, GRAINS, grainOf, localToday, percentChange, perTable, RANGES, rangeOf, REPORT_TIMEZONE, shortBucketLabel,
 } from "@/modules/reports/figures";
 import { getReport } from "@/modules/reports/queries";
 import { NoAccess } from "@/modules/staff/components/no-access";
@@ -15,6 +15,8 @@ export const metadata: Metadata = { title: "Reports · TableTap staff" };
 type Props = { searchParams: Promise<{ range?: string | string[]; grain?: string | string[] }> };
 
 const segment = "rounded-sm px-3 py-1.5 font-semibold whitespace-nowrap focus-visible:outline-2 focus-visible:outline-brand";
+const secondary =
+  "flex h-[42px] items-center rounded-md border border-border px-4 font-semibold whitespace-nowrap hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand";
 const card = "flex min-w-0 flex-col gap-1.5 rounded-lg border border-border p-5";
 const million = (v: number) => (v / 1_000_000).toFixed(2);
 const percent = (c: number) => `${c >= 0 ? "+" : "−"}${Math.abs(c).toFixed(1)}%`;
@@ -51,6 +53,8 @@ export default async function ReportsPage({ searchParams }: Props) {
   const range = rangeOf(sp.range);
   const grain = grainOf(sp.grain);
   const r = await getReport(range, grain, localToday(new Date(), REPORT_TIMEZONE));
+  // Period and grouping links stay where the owner is reading (no scroll to top, no history entry per
+  // click). With no loading.tsx, the old figures stay on screen until the new ones arrive.
   const href = (rangeKey: string, grainKey: string) => `/staff/reports?range=${rangeKey}&grain=${grainKey}`;
 
   const vs = `vs ${range.previous}`;
@@ -88,6 +92,8 @@ export default async function ReportsPage({ searchParams }: Props) {
             <Link
               key={x.key}
               href={href(x.key, grain)}
+              scroll={false}
+              replace
               aria-current={x.key === range.key ? "page" : undefined}
               className={`${segment} ${x.key === range.key ? "bg-bg shadow-sm" : "text-muted"}`}
             >
@@ -95,6 +101,9 @@ export default async function ReportsPage({ searchParams }: Props) {
             </Link>
           ))}
         </nav>
+        <a href={`/staff/reports/export?range=${range.key}&grain=${grain}`} download className={secondary}>
+          Export CSV
+        </a>
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -124,6 +133,8 @@ export default async function ReportsPage({ searchParams }: Props) {
                 <Link
                   key={g.key}
                   href={href(range.key, g.key)}
+                  scroll={false}
+                  replace
                   aria-current={g.key === grain ? "page" : undefined}
                   className={`${segment} text-caption ${g.key === grain ? "bg-bg shadow-sm" : "text-muted"}`}
                 >
@@ -137,6 +148,7 @@ export default async function ReportsPage({ searchParams }: Props) {
             bars={r.buckets.map((b) => ({
               key: b.bucket,
               label: bucketLabel(b.bucket, grain),
+              shortLabel: shortBucketLabel(b.bucket, grain),
               value: b.revenue,
               display: million(b.revenue),
               description: `${bucketLabel(b.bucket, grain)}: ${formatVnd(b.revenue)}`,
@@ -145,8 +157,16 @@ export default async function ReportsPage({ searchParams }: Props) {
         </section>
 
         <section aria-label="Best sellers" className={`${card} gap-1`}>
-          <div className="flex items-center pb-2">
+          <div className="flex items-center gap-3 pb-2">
             <h2 className="text-heading flex-1">Best sellers</h2>
+            <a
+              href={`/staff/reports/export?range=${range.key}&kind=dishes`}
+              download
+              aria-label="Export all dishes as CSV"
+              className="text-caption rounded-sm font-semibold text-brand-strong underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-brand"
+            >
+              Export CSV
+            </a>
             <span className="text-caption text-muted">Revenue</span>
           </div>
           {top.length === 0 ? (

@@ -264,6 +264,10 @@ test.describe("table session flow", () => {
   });
 
   test("(f) a table paid in cash and closed adds to today's revenue on O2", async ({ browser }) => {
+    // "Today" must not change between the first and last read: skip from 23:50 to 00:05 in Vietnam (UTC+7, no DST).
+    const vn = new Date(Date.now() + 7 * 3_600_000);
+    const minute = vn.getUTCHours() * 60 + vn.getUTCMinutes();
+    test.skip(minute >= 23 * 60 + 50 || minute < 5, "too close to midnight in Asia/Ho_Chi_Minh");
     const cashier = await staff(browser, "cashier");
     const owner = await staff(browser, "owner");
     const an = await guest(browser);

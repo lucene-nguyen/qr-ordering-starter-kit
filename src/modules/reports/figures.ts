@@ -63,6 +63,12 @@ export function bucketLabel(bucket: string, grain: Grain) {
   return grain === "week" ? `Week of ${dayMonth}` : dayMonth;
 }
 
+/** Axis label that fits a bar on a 390 px phone: "10/3" (day, week start) or "Mar" (month). */
+export function shortBucketLabel(bucket: string, grain: Grain) {
+  const d = new Date(`${bucket}T00:00:00Z`);
+  return grain === "month" ? MONTHS[d.getUTCMonth()] : `${d.getUTCDate()}/${d.getUTCMonth() + 1}`;
+}
+
 export type ItemRow = { menu_item_id: string; name: string; category: string; qty: number; revenue: number };
 
 /** Dish revenue added up per category, highest first. */

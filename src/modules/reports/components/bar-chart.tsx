@@ -1,4 +1,4 @@
-export type Bar = { key: string; label: string; value: number; display: string; description: string };
+export type Bar = { key: string; label: string; shortLabel?: string; value: number; display: string; description: string };
 
 const MAX_BAR_PX = 170;
 
@@ -29,7 +29,14 @@ export function BarChart({ label, bars }: { label: string; bars: Bar[] }) {
               style={{ height: max > 0 ? Math.round((b.value / max) * MAX_BAR_PX) : 0 }}
             />
             <span aria-hidden="true" className={`text-caption max-w-full truncate text-muted ${i % labelEvery ? "invisible" : ""}`}>
-              {b.label}
+              {b.shortLabel ? (
+                <>
+                  <span className="sm:hidden">{b.shortLabel}</span>
+                  <span className="hidden sm:inline">{b.label}</span>
+                </>
+              ) : (
+                b.label
+              )}
             </span>
           </li>
         );

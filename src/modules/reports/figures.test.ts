@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { addDays, bucketLabel, byCategory, localToday, percentChange, periods, perTable, rangeOf, totals } from "./figures.ts";
+import { addDays, bucketLabel, byCategory, localToday, percentChange, periods, perTable, rangeOf, shortBucketLabel, totals } from "./figures.ts";
 
 test("today is the restaurant's day: 23:30 UTC is already the next day in Asia/Ho_Chi_Minh", () => {
   assert.equal(localToday(new Date("2026-10-29T16:59:00Z"), "Asia/Ho_Chi_Minh"), "2026-10-29");
@@ -44,6 +44,9 @@ test("bucket labels: day, week of the Monday, month", () => {
   assert.equal(bucketLabel("2020-03-10", "day"), "10 Mar");
   assert.equal(bucketLabel("2020-03-09", "week"), "Week of 9 Mar");
   assert.equal(bucketLabel("2020-03-01", "month"), "Mar 2020");
+  assert.equal(shortBucketLabel("2020-03-10", "day"), "10/3");
+  assert.equal(shortBucketLabel("2020-03-09", "week"), "9/3");
+  assert.equal(shortBucketLabel("2020-03-01", "month"), "Mar");
 });
 
 test("categories add up their dishes, highest revenue first", () => {
