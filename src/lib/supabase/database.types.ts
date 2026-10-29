@@ -583,6 +583,13 @@ export type Database = {
         }
         Returns: number
       }
+      guest_bill: {
+        Args: { p_guest: string; p_table_code: string }
+        Returns: {
+          amount_open: number
+          bank_ready: boolean
+        }[]
+      }
       guest_payment_qr: {
         Args: { p_guest: string; p_payment: string; p_table_code: string }
         Returns: {
