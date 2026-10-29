@@ -1,6 +1,8 @@
 # Runbook – release Phase 6 to production · LEARNING-100
 
-Status: **draft, not executed.** The owner (Cuong) applies everything on prod; no agent touches prod.
+Status: **executed 2026-10-29.** The migration was applied with the MCP as `phase6_reports`, PR #3
+was merged as `b5ae0ec`, and the smoke test passed. The owner (Cuong) applies everything on prod; no
+agent touches prod.
 
 What goes out:
 - **DB (prod `sxwcsxyalzblvkhtlola`):** `20261029150739_phase6_reports.sql`. Apply it with the MCP

@@ -1,6 +1,7 @@
 # Phase 6 – Revenue reports · LEARNING-100
 
-- Dates: 2026-10-29 → 2026-10-29 (released to prod: pending, see `docs/runbooks/phase-6-release.md`)
+- Dates: 2026-10-29 → released to prod 2026-10-29 (PR #3, merge `b5ae0ec`). Released via MCP
+  (`phase6_reports`), prod history by name (`docs/runbooks/phase-6-release.md`).
 - Commits (branch `learning-100`, PR #3):
   - `4208584`: report functions and `phase6.sql`;
   - `b752991`: O2 / O2b;
