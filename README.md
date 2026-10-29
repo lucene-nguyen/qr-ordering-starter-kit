@@ -21,19 +21,25 @@ Learn-by-building project · Jira: [LEARNING-94](https://lucenenguyen.atlassian.
 
 ## Screens
 
+Pictures of the app itself (dev database, demo bank account, PIN hidden).
+
 <table>
 <tr>
-<td align="center" valign="top"><img src="docs/prototype/screens/00-join.png" width="170" alt="00 Join table"><br><b>00</b> Join with the table PIN</td>
-<td align="center" valign="top"><img src="docs/prototype/screens/05-pay.png" width="170" alt="05 Pay with VietQR"><br><b>05</b> Pay with VietQR</td>
-<td align="center" valign="top"><img src="docs/prototype/screens/S1-tables.png" width="340" alt="S1 Tables"><br><b>S1</b> Tables (staff)</td>
+<td align="center" valign="top"><img src="docs/screens/app/00-join.png" width="170" alt="00 Join table with name and PIN"><br><b>00</b> Join with the table PIN</td>
+<td align="center" valign="top"><img src="docs/screens/app/05-pay.png" width="170" alt="05 Pay with VietQR"><br><b>05</b> Pay with VietQR</td>
+<td align="center" valign="top"><img src="docs/screens/app/S1-tables.png" width="340" alt="S1 Tables, PIN hidden"><br><b>S1</b> Tables (staff)</td>
 </tr>
 <tr>
-<td colspan="3" align="center"><img src="docs/prototype/screens/O2-reports.png" width="700" alt="O2 Revenue reports"><br><b>O2</b> Revenue reports (owner)</td>
+<td colspan="3" align="center"><img src="docs/screens/app/O2-reports.png" width="700" alt="O2 Revenue reports, last 30 days"><br><b>O2</b> Revenue reports (owner)</td>
 </tr>
 </table>
 
-**[Try the clickable prototype](https://qr-ordering-starter-kit.vercel.app/prototype/)**: guest app and
-staff console in one page, no sign-in, nothing saved. All 23 screens: [prototype gallery](docs/prototype/README.md#screen-gallery).
+The design prototype came first and differs in places (see its notes):
+- **[Design prototype gallery](docs/prototype/README.md#screen-gallery)**: all 23 designed screens.
+- **[Try the clickable prototype](https://qr-ordering-starter-kit.vercel.app/prototype/)**: guest app and
+  staff console in one page, no sign-in, nothing saved.
+
+To retake the app pictures (dev only): `E2E_SCREENS=1 npx playwright test app-screens`.
 
 ## Architecture
 

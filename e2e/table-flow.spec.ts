@@ -1,79 +1,12 @@
-import { expect, test, type Browser, type Page } from "@playwright/test";
-import { account, missingAccount, signIn, withoutBankDetails, type Role } from "./helpers";
+import { expect, test, type Page } from "@playwright/test";
+import {
+  account, addDish, forceClose, guest, join, missingAccount, openTable, orderIcedTea, panelOf, placeOrder, staff, withoutBankDetails,
+} from "./helpers";
 
 // LEARNING-99 end to end: staff open a table → guest joins with the PIN and orders → staff close.
 // Every actor gets its own browser context (= its own device). Screenshots for the prototype
 // comparison go to test-results/screens (gitignored).
 const shot = (page: Page, name: string) => page.screenshot({ path: `test-results/screens/${name}.png`, fullPage: true });
-
-async function staff(browser: Browser, role: Role) {
-  const page = await (await browser.newContext({ viewport: { width: 1280, height: 860 } })).newPage();
-  await signIn(page, account(role)!);
-  return page;
-}
-
-const panelOf = (page: Page, code: string) => page.getByRole("region", { name: `Table ${code} details` });
-
-/** Opens the table on S1 (if needed) and returns its PIN, read from the screen like a cashier would. */
-async function openTable(page: Page, code: string) {
-  await page.goto(`/staff/tables?table=${code}`);
-  const panel = panelOf(page, code);
-  const open = panel.getByRole("button", { name: "Open session" });
-  if (await open.isVisible()) await open.click();
-  await panel.getByRole("button", { name: `Show the PIN of Table ${code}` }).click();
-  return (await panel.getByText(/^\d{4}$/).innerText()).trim();
-}
-
-async function guest(browser: Browser) {
-  return (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
-}
-
-async function join(page: Page, code: string, name: string, pin: string) {
-  await page.goto(`/t/${code}`);
-  await page.getByLabel("Your name").fill(name);
-  await page.getByLabel("PIN digit 1 of 4").fill(pin); // the whole code into the first box, like autofill
-  await page.getByRole("button", { name: "Join table & view menu" }).click();
-  await expect(page.getByText(`Welcome, ${name}`)).toBeVisible();
-}
-
-async function orderIcedTea(page: Page, code: string) {
-  await page.getByRole("link", { name: /Trà đá chanh/ }).first().click();
-  await page.getByRole("button", { name: /Add to cart/ }).click();
-  await page.waitForURL(`**/t/${code}`);
-  await page.goto(`/t/${code}/cart`);
-  await page.getByRole("button", { name: /Place order/ }).click();
-  await page.waitForURL(`**/t/${code}/order/**`);
-}
-
-/** Adds `qty` of a dish in its default (first) size to the shared cart. */
-async function addDish(page: Page, code: string, dish: string, qty: number) {
-  await page.getByRole("link", { name: new RegExp(dish) }).first().click();
-  for (let i = 1; i < qty; i++) await page.getByRole("button", { name: "Increase quantity" }).click();
-  await page.getByRole("button", { name: /Add to cart/ }).click();
-  await page.waitForURL(`**/t/${code}`);
-}
-
-async function placeOrder(page: Page, code: string) {
-  await page.goto(`/t/${code}/cart`);
-  await page.getByRole("button", { name: /Place order/ }).click();
-  await page.waitForURL(`**/t/${code}/order/**`);
-}
-
-/** Owner closes the table whatever its state: already closed, open and settled, or owing (force). */
-async function forceClose(page: Page, code: string, reason: string) {
-  await page.goto(`/staff/tables?table=${code}`);
-  const panel = panelOf(page, code);
-  await expect(panel).toBeVisible(); // isVisible() below doesn't wait for the page
-  if (await panel.getByRole("button", { name: "Open session" }).isVisible()) return;
-  const reasonBox = panel.getByPlaceholder("e.g. Guests left without paying");
-  if (await reasonBox.isVisible()) {
-    await reasonBox.fill(reason);
-    await panel.getByRole("button", { name: "Force close" }).click();
-  } else {
-    await panel.getByRole("button", { name: "Close session" }).click();
-  }
-  await expect(panel.getByRole("button", { name: "Open session" })).toBeVisible();
-}
 
 test.describe("table session flow", () => {
   test.describe.configure({ timeout: 90_000 }); // three devices and several page loads per test
