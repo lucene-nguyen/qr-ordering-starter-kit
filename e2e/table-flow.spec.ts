@@ -262,4 +262,44 @@ test.describe("table session flow", () => {
     });
     await forceClose(owner, "02", "E2E cleanup");
   });
+
+  test("(f) a table paid in cash and closed adds to today's revenue on O2", async ({ browser }) => {
+    // "Today" must not change between the first and last read: skip from 23:50 to 00:05 in Vietnam (UTC+7, no DST).
+    const vn = new Date(Date.now() + 7 * 3_600_000);
+    const minute = vn.getUTCHours() * 60 + vn.getUTCMinutes();
+    test.skip(minute >= 23 * 60 + 50 || minute < 5, "too close to midnight in Asia/Ho_Chi_Minh");
+    const cashier = await staff(browser, "cashier");
+    const owner = await staff(browser, "owner");
+    const an = await guest(browser);
+    // The first amount in a KPI card is its value ("Today so far 1.250.000đ Updates when…").
+    const kpi = async (name: string) => {
+      const text = await owner.getByRole("region", { name, exact: true }).innerText();
+      return Number(text.match(/([\d.]+)(đ|\n|$)/)![1].replace(/\./g, ""));
+    };
+
+    await forceClose(owner, "12", "E2E clean start");
+    await owner.goto("/staff/reports?range=today");
+    const before = { revenue: await kpi("Revenue"), today: await kpi("Today so far"), orders: await kpi("Orders") };
+
+    const pin = await openTable(cashier, "12");
+    await join(an, "12", "An", pin);
+    await orderIcedTea(an, "12"); // 15.000đ
+
+    // An open table is not revenue yet
+    await owner.reload();
+    expect(await kpi("Revenue")).toBe(before.revenue);
+
+    await cashier.goto("/staff/checkout?table=12");
+    const payments = cashier.getByRole("region", { name: "Payments" });
+    await payments.getByRole("button", { name: "Paid in cash · 15.000đ" }).click();
+    await expect(payments).toContainText("Settled");
+    await payments.getByRole("button", { name: "Close table" }).click();
+    await expect(cashier.getByRole("heading", { name: "Checkout · Table 12" })).toHaveCount(0);
+
+    await owner.reload();
+    expect(await kpi("Revenue")).toBe(before.revenue + 15000);
+    expect(await kpi("Today so far")).toBe(before.today + 15000);
+    expect(await kpi("Orders")).toBe(before.orders + 1);
+    await shot(owner, "O2-reports-today");
+  });
 });

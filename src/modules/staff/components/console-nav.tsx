@@ -5,13 +5,13 @@ import { usePathname } from "next/navigation";
 import { Icon } from "@/lib/icons";
 
 // `section`: the URL prefix that counts as "this page" (Settings has several tabs later).
-type Item = { href: string; section: string; label: string; icon: "grid" | "flame" | "receipt" | "settings"; locked: boolean };
+type Item = { href: string; section: string; label: string; icon: "grid" | "flame" | "receipt" | "chart" | "settings"; locked: boolean };
 
 /** Sidebar links; a lock marks pages this role can't use (they open the no-access screen). */
 export function ConsoleNav({ items }: { items: Item[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Staff console" className="flex gap-1 overflow-x-auto md:flex-col">
+    <nav aria-label="Staff console" className="flex flex-wrap gap-1 md:flex-col md:flex-nowrap">
       {items.map((item) => {
         const current = pathname.startsWith(item.section);
         return (

@@ -130,14 +130,30 @@ Evidence: `docs/lessons/phase-5.md`. Release to prod: `docs/runbooks/phase-5-rel
 **Learning goals:** SQL aggregation, views and indexes; timezone-correct grouping (Asia/Ho_Chi_Minh); data visualisation.
 
 **Acceptance criteria**
-- [ ] Daily revenue matches the sum of paid orders for that day.
-- [ ] Reports load in under 2 seconds with a few thousand orders.
-- [ ] CSV export opens correctly in Excel / Google Sheets.
-- [ ] Only the owner role can view reports.
+- [x] Daily revenue matches the sum of paid orders for that day. – `supabase/tests/phase6.sql` AC1
+  (+ R1–R8 for midnight in Asia/Ho_Chi_Minh, force-closed and open tables); E2E table-flow (f).
+- [x] Reports load in under 2 seconds with a few thousand orders. – About 0,3 s with 3.080 seeded
+  orders on dev; the functions take 12–74 ms over 90 days (`docs/lessons/phase-6.md`, Performance).
+- [x] CSV export opens correctly in Excel / Google Sheets. – Revenue and dishes for 30 days opened
+  by hand in both (2026-10-29): Vietnamese correct, columns split correctly, money columns are numbers
+  that SUM. Automated: `csv.test.ts`, E2E `reports.spec.ts` (BOM, CRLF, totals match the page).
+- [x] Only the owner role can view reports. – `phase6.sql` N1/N2 (cashier, kitchen `NOT_ALLOWED`;
+  anon can't call); E2E: cashier and kitchen get O2b, cashier gets 403 on the CSV.
 
-**Prototype screens:** O2 Reports, O2b Reports · cashier (no access), O1 Menu (sold today).
+Evidence: `docs/lessons/phase-6.md`. Release to prod: `docs/runbooks/phase-6-release.md`.
+
+**Decisions (ADR 0004):** revenue = confirmed payments of closed tables, on their closing day
+(Asia/Ho_Chi_Minh), including money confirmed before a force-close; what those tables still owed is
+shown apart as "Unpaid (closed by owner)". The KPIs are "Orders" (all closed tables) and
+"Avg. per table" (revenue ÷ closed tables). The AC1 "paid orders" are the orders of fully paid tables.
+
+**Prototype screens:** O2 Reports, O2b Reports · cashier (no access). O1 Menu "Sold today" moved
+to Later.
 
 ## Later (not scheduled)
+
+- O1 Menu management with a "Sold today" column (the O1 screen itself was never built).
+- "Void payment" for the owner, with a reason, for a payment confirmed by mistake (ADR 0004).
 
 - Bank webhook to confirm VietQR transfers automatically (Phase 5 uses cashier confirmation).
 - C2 "Show VietQR" for the remaining amount, so a guest can transfer at the counter. Needs a

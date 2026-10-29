@@ -15,7 +15,8 @@ Conventions: `uuid` primary keys (`gen_random_uuid()`), `timestamptz` in UTC, mo
 | 3 | `staff_profiles`, `private.staff_role()`, staff RLS + column grants, realtime publication (`20261028200000_phase3_staff_kitchen.sql`, `20261028201000_private_staff_role.sql`; see ADR 0002) |
 | 4 | `table_sessions` (+`cart_version`, `last_activity_at`), `session_guests`, `cart_items` (one row per guest per exact choice, `nulls not distinct`), `orders.session_id` FK + `placed_by`; functions `join_table`, `cart_add`, `cart_change`, `place_session_order`, `private.price_line` (`20261028300000_phase4_shared_cart.sql`, `20261028301000_cart_add_qty_check.sql`). No `version` column: quantity changes are atomic deltas. |
 | 5 | `table_sessions` + `pin`, `opened_by`, `closed_by`, `closed_reason`, `split_people`; `payments`, `restaurant_settings`, `join_attempts`; functions `join_table` (PIN), `request_payment`, `cancel_payment`, `record_cash_payment`, `guest_payment_qr`, `private.session_remaining`; triggers `table_sessions_rules`, `payments_rules` (`20261028400000_phase5_sessions_payments.sql`, `20261028401000_guest_payment_qr.sql`, `20261028402000_owner_adds_settings.sql`; ADR 0003) |
-| 6 | views `daily_revenue`, `item_sales` |
+| 5 fix | `request_payment` raises `NO_BANK_ACCOUNT` without a `restaurant_settings` row; function `guest_bill` (amount still owed + `bank_ready`, `service_role` only) (`20261029141025_no_bank_account.sql`, LEARNING-100) |
+| 6 | functions `report_revenue(from, to, grain)`, `report_items(from, to)`, `report_hours(from, to)`: security invoker, owner only (`NOT_ALLOWED` otherwise), dates grouped in Asia/Ho_Chi_Minh; partial index `table_sessions(closed_at) where status = 'closed'` (`20261029150739_phase6_reports.sql`; ADR 0004). Functions instead of views: a cashier can read `payments` through RLS, so the owner check has to sit inside. |
 
 ```sql
 -- Phase 1 ---------------------------------------------------------------
@@ -185,7 +186,9 @@ create table join_attempts (                                 -- wrong PINs, serv
   `cancel_payment`) are executable by `service_role` only; Server Actions call them after checking
   the `tt_guest` cookie. `guest_payment_qr` is executable by `anon` and answers only for the
   caller's own pending payment in an open session.
-- Reports views: `owner` only.
+- Reports: `report_revenue`, `report_items` and `report_hours` run as the caller (RLS applies) and
+  raise `NOT_ALLOWED` unless `private.staff_role() = 'owner'`. They are executable by `authenticated`
+  only, not `anon`. Revenue rules are in ADR 0004.
 - Helper: `private.staff_role()` reading `staff_profiles` for `auth.uid()` (Phase 3). Staff `update` is limited per column: `orders.status`, `menu_items.is_available`.
 
 ## Seed data
