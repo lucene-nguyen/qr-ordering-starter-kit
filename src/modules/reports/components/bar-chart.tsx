@@ -28,7 +28,8 @@ export function BarChart({ label, bars }: { label: string; bars: Bar[] }) {
               className={`block w-full rounded-t-[6px] ${top ? "bg-brand" : "bg-surface-brand"}`}
               style={{ height: max > 0 ? Math.round((b.value / max) * MAX_BAR_PX) : 0 }}
             />
-            <span aria-hidden="true" className={`text-caption max-w-full truncate text-muted ${i % labelEvery ? "invisible" : ""}`}>
+            {/* Only every n-th label shows, so a label may spill over its unlabelled neighbours. */}
+            <span aria-hidden="true" className={`text-caption whitespace-nowrap text-muted ${i % labelEvery ? "invisible" : ""}`}>
               {b.shortLabel ? (
                 <>
                   <span className="sm:hidden">{b.shortLabel}</span>

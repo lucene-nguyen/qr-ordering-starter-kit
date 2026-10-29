@@ -32,6 +32,9 @@ test.describe("O2 · reports", () => {
     await page.getByRole("navigation", { name: "Period" }).getByRole("link", { name: "30 days" }).click();
     await expect(page.getByText("Last 30 days · Asia/Ho_Chi_Minh")).toBeVisible();
     await expect(page.getByRole("list", { name: "Revenue by day" }).getByRole("listitem")).toHaveCount(30);
+    // Axis labels are whole ("13 Oct"), not cut to the width of one thin bar
+    const firstLabel = page.getByRole("list", { name: "Revenue by day" }).getByRole("listitem").first().locator(":scope > span").last();
+    expect(await firstLabel.evaluate((el) => el.scrollWidth <= el.clientWidth && /\d+ [A-Z][a-z]{2}/.test(el.textContent ?? ""))).toBe(true);
 
     // Switching the grouping keeps the scroll position and the focus on the link (no jump to the top)
     await page.setViewportSize({ width: 1280, height: 600 });
