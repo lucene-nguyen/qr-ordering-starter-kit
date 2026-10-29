@@ -8,28 +8,42 @@ Also available as a hosted Claude artifact (private to the owner):
 https://claude.ai/artifact/56pQByAEUJpVFkRfERcrag
 Figma (secondary, may lag behind the prototype): https://www.figma.com/design/R0P31cqIX3WMJx0ypnVkqj
 
-## Screen map
+## Try it
 
-| Code | Screen | Phase / Jira |
-|---|---|---|
-| 00 | Join table (name) | 1 (layout), 4 (name) · LEARNING-95/98 |
-| 00a | Table not found | 1 · LEARNING-95 |
-| 00b | Session not open / QR expired | 5 · LEARNING-99 |
-| 01 | Menu (categories, search, sold out, cart bar) | 1 · LEARNING-95 |
-| 02 | Item detail (size, add-ons, note, qty) | 2 · LEARNING-96 |
-| 03 | Cart (shared, "Added by") | 2, 4 · LEARNING-96/98 |
-| 03b | Order failed – retry | 2 · LEARNING-96 |
-| 04 | Order status (received → preparing → ready → served) | 2, 3 · LEARNING-96/97 |
-| 05 | Pay with VietQR (full / split) | 5 · LEARNING-99 |
-| 05b | Payment pending / not received | 5 · LEARNING-99 |
-| 06 | Payment success | 5 · LEARNING-99 |
-| S0 | Staff sign in (roles) | 5 · LEARNING-99 |
-| S1 / S1b | Tables, Open session | 5 · LEARNING-99 |
-| K1 / K1b | Kitchen display, offline/resync, sold-out drawer | 3 · LEARNING-97 |
-| C2 | Checkout (payments, cash, close table) | 5 · LEARNING-99 |
-| O1 / O1b | Menu management, Add/Edit dish | 1, 3 · LEARNING-95/97 |
-| O2 / O2b | Revenue reports, cashier no-access | 6 · LEARNING-100 |
-| O3 / O4 | Settings: VietQR bank account, Tables & QR cards | 5, 1 · LEARNING-99/95 |
+- **Hosted with the app:** https://qr-ordering-starter-kit.vercel.app/prototype/ (after this change is
+  deployed; `public/prototype/index.html`). It doesn't sign in or touch any data: everything lives in
+  the page and resets on reload.
+- **Locally:** open `tabletap-prototype.html` in a browser, or `npm run dev` → http://localhost:3000/prototype.
+
+`public/prototype/index.html` is a copy of `tabletap-prototype.html`. After changing the prototype,
+copy it again: `cp docs/prototype/tabletap-prototype.html public/prototype/index.html`.
+
+## Screen gallery
+
+Every screen of the prototype, by its code. Phases are LEARNING-95 (1) … LEARNING-100 (6). The built
+app follows these screens. Where it differs on purpose, the ADRs say why; for example O2 shows "Orders"
+and "Avg. per table" (ADR 0004).
+
+To regenerate the pictures: `node scripts/capture-prototype.mjs`.
+
+### Guest app (390 px phone)
+
+<table>
+<tr><td align="center" valign="top" width="25%"><img src="screens/00-join.png" width="180" alt="00 Join table (name, PIN)"><br><b>00</b> Join table (name, PIN)<br><sub>Phase 1, 4, 5</sub></td><td align="center" valign="top" width="25%"><img src="screens/00a-notfound.png" width="180" alt="00a Table not found"><br><b>00a</b> Table not found<br><sub>Phase 1</sub></td><td align="center" valign="top" width="25%"><img src="screens/00b-closed.png" width="180" alt="00b Session not open"><br><b>00b</b> Session not open<br><sub>Phase 5</sub></td><td align="center" valign="top" width="25%"><img src="screens/01-menu.png" width="180" alt="01 Menu"><br><b>01</b> Menu<br><sub>Phase 1</sub></td></tr>
+<tr><td align="center" valign="top" width="25%"><img src="screens/02-item.png" width="180" alt="02 Item detail"><br><b>02</b> Item detail<br><sub>Phase 2</sub></td><td align="center" valign="top" width="25%"><img src="screens/03-cart.png" width="180" alt="03 Shared cart"><br><b>03</b> Shared cart<br><sub>Phase 2, 4</sub></td><td align="center" valign="top" width="25%"><img src="screens/03b-failed.png" width="180" alt="03b Order failed – retry"><br><b>03b</b> Order failed – retry<br><sub>Phase 2</sub></td><td align="center" valign="top" width="25%"><img src="screens/04-status.png" width="180" alt="04 Order status"><br><b>04</b> Order status<br><sub>Phase 2, 3</sub></td></tr>
+<tr><td align="center" valign="top" width="25%"><img src="screens/05-pay.png" width="180" alt="05 Pay with VietQR (full / split)"><br><b>05</b> Pay with VietQR (full / split)<br><sub>Phase 5</sub></td><td align="center" valign="top" width="25%"><img src="screens/05b-pending.png" width="180" alt="05b Payment pending"><br><b>05b</b> Payment pending<br><sub>Phase 5</sub></td><td align="center" valign="top" width="25%"><img src="screens/06-success.png" width="180" alt="06 Payment received"><br><b>06</b> Payment received<br><sub>Phase 5</sub></td></tr>
+</table>
+
+### Staff console (1280 px)
+
+<table>
+<tr><td align="center" valign="top" width="50%"><img src="screens/S0-signin.png" width="400" alt="S0 Staff sign in"><br><b>S0</b> Staff sign in<br><sub>Phase 3, 5</sub></td><td align="center" valign="top" width="50%"><img src="screens/S1-tables.png" width="400" alt="S1 Tables"><br><b>S1</b> Tables<br><sub>Phase 5</sub></td></tr>
+<tr><td align="center" valign="top" width="50%"><img src="screens/S1b-opensession.png" width="400" alt="S1b Open session (PIN)"><br><b>S1b</b> Open session (PIN)<br><sub>Phase 5</sub></td><td align="center" valign="top" width="50%"><img src="screens/K1-kitchen.png" width="400" alt="K1 Kitchen display"><br><b>K1</b> Kitchen display<br><sub>Phase 3</sub></td></tr>
+<tr><td align="center" valign="top" width="50%"><img src="screens/K1b-kdsoff.png" width="400" alt="K1b Kitchen offline / resync"><br><b>K1b</b> Kitchen offline / resync<br><sub>Phase 3</sub></td><td align="center" valign="top" width="50%"><img src="screens/C2-checkout.png" width="400" alt="C2 Checkout"><br><b>C2</b> Checkout<br><sub>Phase 5</sub></td></tr>
+<tr><td align="center" valign="top" width="50%"><img src="screens/O1-menu.png" width="400" alt="O1 Menu management"><br><b>O1</b> Menu management<br><sub>Phase 1, 3 (backlog)</sub></td><td align="center" valign="top" width="50%"><img src="screens/O1b-adddish.png" width="400" alt="O1b Add / edit dish"><br><b>O1b</b> Add / edit dish<br><sub>Phase 1, 3 (backlog)</sub></td></tr>
+<tr><td align="center" valign="top" width="50%"><img src="screens/O2-reports.png" width="400" alt="O2 Revenue reports"><br><b>O2</b> Revenue reports<br><sub>Phase 6</sub></td><td align="center" valign="top" width="50%"><img src="screens/O2b-noaccess.png" width="400" alt="O2b Reports · cashier (no access)"><br><b>O2b</b> Reports · cashier (no access)<br><sub>Phase 6</sub></td></tr>
+<tr><td align="center" valign="top" width="50%"><img src="screens/O3-settings.png" width="400" alt="O3 Settings · VietQR bank account"><br><b>O3</b> Settings · VietQR bank account<br><sub>Phase 5</sub></td><td align="center" valign="top" width="50%"><img src="screens/O4-settings-qr.png" width="400" alt="O4 Settings · Tables & QR cards"><br><b>O4</b> Settings · Tables & QR cards<br><sub>Phase 1</sub></td></tr>
+</table>
 
 ## Design tokens
 
