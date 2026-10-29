@@ -80,6 +80,14 @@ test.describe("O2 · reports", () => {
     await signIn(page, owner!, "/staff/reports");
     await expect(page.getByRole("region", { name: "Best sellers" })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+    // Every console link is on screen at once: none hidden in a sideways-scrolling strip
+    const nav = page.getByRole("navigation", { name: "Staff console" });
+    expect(await nav.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+    for (const name of ["Tables", "Kitchen", "Checkout", "Reports", "Settings"]) {
+      const box = (await nav.getByRole("link", { name }).boundingBox())!;
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(390);
+    }
     await page.screenshot({ path: "test-results/screens/O2-reports-390.png", fullPage: true });
   });
 

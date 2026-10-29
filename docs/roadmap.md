@@ -132,7 +132,9 @@ Evidence: `docs/lessons/phase-5.md`. Release to prod: `docs/runbooks/phase-5-rel
 **Acceptance criteria**
 - [ ] Daily revenue matches the sum of paid orders for that day.
 - [ ] Reports load in under 2 seconds with a few thousand orders.
-- [ ] CSV export opens correctly in Excel / Google Sheets.
+- [x] CSV export opens correctly in Excel / Google Sheets. – Revenue and dishes for 30 days opened
+  by hand in both (2026-10-29): Vietnamese correct, columns split correctly, money columns are numbers
+  that SUM. Automated: `csv.test.ts`, E2E `reports.spec.ts` (BOM, CRLF, totals match the page).
 - [ ] Only the owner role can view reports.
 
 **Decisions (ADR 0004):** revenue = confirmed payments of closed tables, on their closing day

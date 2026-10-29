@@ -11,7 +11,7 @@ type Item = { href: string; section: string; label: string; icon: "grid" | "flam
 export function ConsoleNav({ items }: { items: Item[] }) {
   const pathname = usePathname();
   return (
-    <nav aria-label="Staff console" className="flex gap-1 overflow-x-auto md:flex-col">
+    <nav aria-label="Staff console" className="flex flex-wrap gap-1 md:flex-col md:flex-nowrap">
       {items.map((item) => {
         const current = pathname.startsWith(item.section);
         return (
