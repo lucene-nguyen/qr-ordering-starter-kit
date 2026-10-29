@@ -1,16 +1,124 @@
 # Architecture
 
-Diagram: `docs/architecture.drawio` (open in draw.io desktop or https://app.diagrams.net).
+![TableTap system design: clients, the Next.js app on Vercel with its domain modules, Supabase, the guest's bank, and the dev/prod environments](architecture.svg)
 
+The source is `docs/architecture.drawio` (draw.io desktop or https://app.diagrams.net). After editing it, run
+`node scripts/export-architecture.mjs` to regenerate `architecture.svg`.
+
+## Sequence diagrams
+
+**(a) Guest joins with the PIN, orders, and the kitchen sees it**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Cashier (S1)
+    actor G as Guest phone
+    participant N as Next.js server
+    participant DB as Postgres
+    participant RT as Realtime
+    actor K as Kitchen tablet
+
+    C->>N: openSession(table 05)
+    N->>DB: insert table_sessions (RLS: owner or cashier)
+    DB-->>N: open session with a random 4-digit PIN
+    Note over C,G: The cashier tells the guests the PIN
+    G->>N: GET /t/05 (scans the printed QR)
+    N-->>G: 00 Join: name and PIN
+    G->>N: joinTable(name, PIN)
+    N->>DB: join_table(code, name, pin, ip) as service_role
+    alt wrong PIN
+        DB-->>N: WRONG_PIN and tries left (5 per IP, 30 per table, 10 min)
+        N-->>G: Wrong PIN, n tries left
+    else right PIN
+        DB-->>N: guest_id
+        N-->>G: httpOnly tt_guest cookie, then 01 Menu
+    end
+    G->>N: addToCart(line), Zod first
+    N->>DB: cart_add(code, guest, line)
+    N->>RT: broadcast session:{id} cart
+    RT-->>G: the table's other phones re-read the shared cart
+    G->>N: placeRound(cart version)
+    N->>DB: place_session_order: prices from the DB, at most 5 rounds in 10 min
+    DB-->>N: order A-0123
+    DB--)RT: orders INSERT (postgres_changes)
+    RT--)K: new order
+    K->>N: re-read open orders (RLS: kitchen)
+    N-->>G: 04 Order status
 ```
-Clients ─ Customer phone (scans table QR) · Kitchen tablet · Owner/Cashier laptop
-   │ HTTPS
-Next.js App on Vercel (App Router, Server Components, Server Actions)
-   │
-Domain modules ─ Menu · Table & Session · Orders · Kitchen · Payments · Reports
-   │                                  │                       │
-Supabase PostgreSQL (data + RLS)   Supabase Realtime        VietQR (bank transfer QR)
-Supabase Auth (staff roles)        (orders, cart changes)
+
+**(b) Request bill: VietQR, the cashier confirms, the guest sees "Paid"**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor G as Guest phone
+    participant N as Next.js server
+    participant DB as Postgres
+    participant RT as Realtime
+    actor C as Cashier (C2)
+    participant B as Guest's bank app
+
+    G->>N: Request bill, GET /t/05/pay
+    N->>DB: guest_bill(code, guest) as service_role
+    alt no bank account in restaurant_settings
+        DB-->>N: amount_open, bank_ready = false
+        N-->>G: Pay at the counter, amount owed (no payment row)
+        Note over G,C: The cashier records cash on C2 (no transfer warning)
+    else bank account set
+        DB-->>N: amount_open, bank_ready = true
+        N-->>G: 05 Full bill or Split equally
+        G->>N: requestPayment(mode, people)
+        N->>DB: request_payment: pending VietQR payment, amount and note TBL05 A0123 computed here
+        N->>RT: broadcast session:{id} payment
+        RT--)C: C2 shows Awaiting
+        G->>N: GET /t/05/pay/{payment}
+        N->>DB: guest_payment_qr(code, guest, payment) with the publishable key
+        DB-->>N: bank, account, amount, note (only this guest's pending payment)
+        N-->>G: VietQR drawn as SVG on the server
+        G->>B: scan and transfer
+        G->>N: I've completed the transfer
+        N-->>G: 05b Waiting for the cashier
+        C->>B: checks the bank app
+        C->>N: confirmPayment(payment)
+        N->>DB: update payments set status = confirmed (trigger stamps who and when)
+        N->>RT: broadcast session:{id} payment
+        RT--)G: doorbell
+        G->>N: re-read the payment
+        N-->>G: 06 Payment received
+    end
+```
+
+**(c) Close the table, then the owner sees it in O2**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Cashier or owner (C2)
+    participant N as Next.js server
+    participant DB as Postgres
+    participant RT as Realtime
+    actor G as Guest phone
+    actor O as Owner (O2)
+
+    C->>N: closeSession(session, reason)
+    N->>DB: update table_sessions set status = closed
+    Note over DB: Trigger: still owing means UNPAID, unless the owner gives a reason.<br/>Stamps closed_at and closed_by, cancels pending payments.
+    alt bill not settled and not the owner
+        DB-->>N: UNPAID
+        N-->>C: Only the owner can close an unpaid table
+    else settled, or owner force-close with a reason
+        DB-->>N: closed
+        N->>RT: broadcast session:{id} closed
+        RT--)G: phone moves to 00b, the PIN and cookie stop working
+    end
+    O->>N: GET /staff/reports?range=7d&grain=day
+    N->>DB: report_revenue (period, previous period, today), report_items, report_hours as the owner
+    Note over DB: security invoker, owner only, otherwise NOT_ALLOWED.<br/>Revenue = confirmed payments of closed tables, by closed_at day in Asia/Ho_Chi_Minh.
+    DB-->>N: rows per day, dishes, hours, unpaid
+    N-->>O: KPIs vs the previous period, bars, best sellers, Unpaid banner
+    O->>N: Export CSV
+    N-->>O: same figures as CSV (UTF-8 BOM, CRLF, formula guard)
 ```
 
 ## Request flows
