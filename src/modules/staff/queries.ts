@@ -10,6 +10,7 @@ export const CAN = {
   manageTables: ["owner", "cashier"],
   markSoldOut: ["owner", "cashier", "kitchen"],
   manageSettings: ["owner"],
+  viewReports: ["owner"],
 } as const satisfies Record<string, readonly StaffRole[]>;
 
 export const allowed = (staff: Staff, roles: readonly StaffRole[]) => roles.includes(staff.role);

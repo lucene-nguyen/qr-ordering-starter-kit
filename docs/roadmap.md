@@ -135,9 +135,18 @@ Evidence: `docs/lessons/phase-5.md`. Release to prod: `docs/runbooks/phase-5-rel
 - [ ] CSV export opens correctly in Excel / Google Sheets.
 - [ ] Only the owner role can view reports.
 
-**Prototype screens:** O2 Reports, O2b Reports · cashier (no access), O1 Menu (sold today).
+**Decisions (ADR 0004):** revenue = confirmed payments of closed tables, on their closing day
+(Asia/Ho_Chi_Minh), including money confirmed before a force-close; what those tables still owed is
+shown apart as "Unpaid (closed by owner)". The KPIs are "Orders" (all closed tables) and
+"Avg. per table" (revenue ÷ closed tables). The AC1 "paid orders" are the orders of fully paid tables.
+
+**Prototype screens:** O2 Reports, O2b Reports · cashier (no access). O1 Menu "Sold today" moved
+to Later.
 
 ## Later (not scheduled)
+
+- O1 Menu management with a "Sold today" column (the O1 screen itself was never built).
+- "Void payment" for the owner, with a reason, for a payment confirmed by mistake (ADR 0004).
 
 - Bank webhook to confirm VietQR transfers automatically (Phase 5 uses cashier confirmation).
 - C2 "Show VietQR" for the remaining amount, so a guest can transfer at the counter. Needs a
