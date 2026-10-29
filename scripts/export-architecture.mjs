@@ -23,6 +23,8 @@ execFileSync(drawio, ["-x", "-f", "svg", "-b", "16", "-o", out, "docs/architectu
 
 let svg = readFileSync(out, "utf8");
 svg = svg.replace(/(<\/foreignObject>)<image [^>]*xlink:href="data:image\/png;base64,[^"]*"[^>]*\/>/g, "$1");
+// draw.io's "Text is not SVG - cannot display" link: never shown where foreignObject works.
+svg = svg.replace(/<switch><g requiredFeatures="[^"]*"\/><a [^>]*>.*?Text is not SVG.*?<\/a><\/switch>/s, "");
 
 for (const url of new Set(svg.match(/https:\/\/icons\.diagrams\.net\/[^"]+\.svg/g) ?? [])) {
   const res = await fetch(url);
@@ -30,7 +32,7 @@ for (const url of new Set(svg.match(/https:\/\/icons\.diagrams\.net\/[^"]+\.svg/
   const data = `data:image/svg+xml;base64,${Buffer.from(await res.text()).toString("base64")}`;
   svg = svg.replaceAll(url, data);
 }
-if (/data:image\/png|icons\.diagrams\.net/.test(svg)) throw new Error("PNG fallbacks or external icons left in the SVG");
+if (/data:image\/png|icons\.diagrams\.net|Text is not SVG/.test(svg)) throw new Error("PNG fallbacks, external icons or the draw.io notice left in the SVG");
 
 writeFileSync(out, svg);
 console.log(`${out}: ${(svg.length / 1024).toFixed(0)} KB`);
