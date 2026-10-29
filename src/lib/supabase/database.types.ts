@@ -618,6 +618,34 @@ export type Database = {
         Returns: Json
       }
       record_cash_payment: { Args: { p_session_id: string }; Returns: Json }
+      report_hours: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          hour: number
+          orders: number
+          revenue: number
+        }[]
+      }
+      report_items: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          category: string
+          menu_item_id: string
+          name: string
+          qty: number
+          revenue: number
+        }[]
+      }
+      report_revenue: {
+        Args: { p_from: string; p_grain: string; p_to: string }
+        Returns: {
+          bucket: string
+          orders: number
+          revenue: number
+          sessions: number
+          unpaid: number
+        }[]
+      }
       request_payment: {
         Args: {
           p_guest: string
