@@ -1,6 +1,7 @@
 # Phase 5 – Anti-fake orders and payment · LEARNING-99
 
-- Dates: 2026-10-28 → (released to prod: pending, see `docs/runbooks/phase-5-release.md`)
+- Dates: 2026-10-28 → released to prod 2026-10-29 (PR #1, merge `cfd5da3`). Released via MCP, prod
+  history by name (`docs/runbooks/phase-5-release.md`).
 - Commits (branch `learning-99`): on `main` `55d580c` (types from dev), `67cf84f` (dev/prod split docs,
   ADR 0003, E2E); then `37f31f2` (SQL), `07b39e4` + `613133c` (VietQR + split), `d57da37` (console + S1),
   `54ced65` (00b + PIN join), `01a0029` (Preview/prod guard), `042d8b2` (05/05b/06 + C2),
