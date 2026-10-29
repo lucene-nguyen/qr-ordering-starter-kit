@@ -19,6 +19,29 @@ Learn-by-building project · Jira: [LEARNING-94](https://lucenenguyen.atlassian.
 - **What was learned, phase by phase:** [`docs/lessons/`](docs/lessons/). Acceptance criteria and their
   evidence: [`docs/roadmap.md`](docs/roadmap.md). Unscheduled work: "Later" in the roadmap.
 
+## Screens
+
+<table>
+<tr>
+<td align="center" valign="top"><img src="docs/prototype/screens/00-join.png" width="170" alt="00 Join table"><br><b>00</b> Join with the table PIN</td>
+<td align="center" valign="top"><img src="docs/prototype/screens/05-pay.png" width="170" alt="05 Pay with VietQR"><br><b>05</b> Pay with VietQR</td>
+<td align="center" valign="top"><img src="docs/prototype/screens/S1-tables.png" width="340" alt="S1 Tables"><br><b>S1</b> Tables (staff)</td>
+</tr>
+<tr>
+<td colspan="3" align="center"><img src="docs/prototype/screens/O2-reports.png" width="700" alt="O2 Revenue reports"><br><b>O2</b> Revenue reports (owner)</td>
+</tr>
+</table>
+
+**[Try the clickable prototype](https://qr-ordering-starter-kit.vercel.app/prototype/)**: guest app and
+staff console in one page, no sign-in, nothing saved. All 23 screens: [prototype gallery](docs/prototype/README.md#screen-gallery).
+
+## Architecture
+
+![TableTap system design: clients, the Next.js app on Vercel with its domain modules, Supabase, the guest's bank, and the dev/prod environments](docs/architecture.svg)
+
+Flows step by step (join and order, VietQR checkout, closing a table and reports) are in
+[`docs/architecture.md`](docs/architecture.md#sequence-diagrams).
+
 ## Quick start
 
 ```bash
@@ -38,7 +61,7 @@ Requires Node.js 22.18 or newer (or 23.6+): `npm test` runs the TypeScript unit 
 | `docs/architecture.md` | System design, flows, trust boundaries (+ `architecture.drawio`) |
 | `docs/data-model.md` | Supabase schema and RLS, per phase |
 | `docs/runbooks/` | Production release steps (Phases 5 and 6) |
-| `docs/prototype/` | Clickable UI prototype – open `tabletap-prototype.html` |
+| `docs/prototype/` | Clickable UI prototype (`tabletap-prototype.html`, also at `/prototype`) and the screen gallery |
 | `docs/decisions/` | Architecture decision records |
 | `docs/lessons/` | Lessons learned per phase |
 
