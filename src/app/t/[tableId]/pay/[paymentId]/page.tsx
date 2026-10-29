@@ -166,7 +166,7 @@ export default async function PaymentPage({ params, searchParams }: Props) {
             {counter}
           </>
         ) : (
-          // The request stays open, so the cashier sees this amount on C2.
+          // Only a request made before the bank details were removed (request_payment refuses new ones).
           <Link href={`/t/${tableId}`} className={secondary}>
             Back to menu
           </Link>

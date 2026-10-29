@@ -1,6 +1,7 @@
 # Runbook – release Phase 5 to production · LEARNING-99
 
-Status: **draft, not executed.** The owner (Cuong) runs every prod step by hand; no agent touches prod.
+Status: **executed 2026-10-29** (migrations via the Supabase MCP, PR #1 merged as `cfd5da3`, smoke test
+OK). The owner (Cuong) runs every prod step by hand; no agent touches prod.
 
 What goes out:
 - DB (prod `sxwcsxyalzblvkhtlola`): `20261028400000_phase5_sessions_payments.sql`,

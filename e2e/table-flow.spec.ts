@@ -233,7 +233,7 @@ test.describe("table session flow", () => {
     await expect(lan.getByRole("heading", { name: "This table isn't open yet" })).toBeVisible({ timeout: 10_000 });
   });
 
-  test("(e) without bank details the guest is sent to the counter", async ({ browser }) => {
+  test("(e) without bank details the guest is sent to the counter and no transfer request is made", async ({ browser }) => {
     const cashier = await staff(browser, "cashier");
     const owner = await staff(browser, "owner");
     const minh = await guest(browser);
@@ -245,11 +245,20 @@ test.describe("table session flow", () => {
     await placeOrder(minh, "02");
     await withoutBankDetails(async () => {
       await minh.goto("/t/02/pay");
-      await minh.getByRole("button", { name: "Show payment QR" }).click();
       await expect(minh.getByRole("heading", { name: "Pay at the counter" })).toBeVisible();
       await expect(minh.getByRole("main")).toContainText("60.000đ");
+      await expect(minh.getByRole("button", { name: "Show payment QR" })).toHaveCount(0);
       await expect(minh.getByRole("img", { name: /VietQR code/ })).toHaveCount(0);
       await shot(minh, "05-pay-at-counter");
+
+      // C2 · nothing awaiting, so cash is recorded straight away (no transfer warning)
+      await cashier.goto("/staff/checkout?table=02");
+      const payments = cashier.getByRole("region", { name: "Payments" });
+      await expect(payments).toBeVisible();
+      await expect(payments).not.toContainText("Awaiting");
+      await payments.getByRole("button", { name: "Paid in cash · 60.000đ" }).click();
+      await expect(payments).toContainText("Cash at the counter");
+      await expect(cashier.getByRole("dialog", { name: "Record a cash payment?" })).toBeHidden();
     });
     await forceClose(owner, "02", "E2E cleanup");
   });

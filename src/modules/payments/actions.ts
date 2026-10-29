@@ -50,6 +50,7 @@ export async function requestPayment(_prev: PayState, formData: FormData): Promi
   });
   if (error) {
     if (error.message === "SESSION_CLOSED" || error.message === "GUEST_NOT_FOUND") redirect(`/t/${tableCode}`);
+    if (error.message === "NO_BANK_ACCOUNT") redirect(`/t/${tableCode}/pay`); // 05 shows "Pay at the counter"
     if (error.message === "NOTHING_TO_PAY") return { error: "There's nothing left to pay at this table." };
     if (error.message === "INVALID_SPLIT") return { error: "Each share must be at least 1.000đ – split between fewer people." };
     console.error("requestPayment failed:", error.message);

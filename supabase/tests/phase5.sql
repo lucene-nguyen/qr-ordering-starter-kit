@@ -1,7 +1,7 @@
 -- Phase 5 (LEARNING-99) database tests – run on DEV only (SQL Editor of tabletap-dev).
 -- Everything runs in one DO block and ends with `raise exception 'ALL_OK'`, which rolls the whole
 -- block back: seeing "ERROR: ALL_OK" means every assert passed and nothing was left behind.
--- Any other error names the failing check (A1…H6).
+-- Any other error names the failing check (A1…H7).
 -- Needs: seed.sql (menu, tables, the demo restaurant_settings row) and the staff accounts hoa@ (owner), an@ (cashier), bep@ (kitchen),
 -- and tables 03, 06, 07, 08 without an open session.
 -- Staff are simulated with `set local role authenticated` + their JWT claims, so RLS, column grants
@@ -21,7 +21,7 @@ declare
   t07 uuid := (select id from tables where code = '07');
   t08 uuid := (select id from tables where code = '08');
   s03 public.table_sessions; s06 public.table_sessions; s07 public.table_sessions; s08 public.table_sessions;
-  r jsonb; g1 uuid; g2 uuid; g3 uuid; p1 jsonb; p2 jsonb; p3 jsonb;
+  r jsonb; g1 uuid; g2 uuid; g3 uuid; g4 uuid; p1 jsonb; p2 jsonb; p3 jsonb;
   ok boolean; n int; i int; ver int;
 begin
   ------------------------------------------------------------ A. opening sessions (AC2)
@@ -111,8 +111,16 @@ begin
   assert (select q.bin is null and q.amount = 83000 from public.guest_payment_qr('07', g1, (p1->>'id')::uuid) q),
     'H6 no bank details yet: bank columns are null (the guest pays at the counter)';
   execute 'reset role';
+  g4 := (public.join_table('07', 'Tu', s07.pin, 'ip-c')->>'guest_id')::uuid;
+  n := (select count(*) from payments);
+  begin perform public.request_payment('07', g4, 'full', null); ok := false;
+  exception when others then ok := sqlerrm = 'NO_BANK_ACCOUNT'; end;
+  assert ok and (select count(*) from payments) = n, 'H7 no bank details: NO_BANK_ACCOUNT and no new payment row';
+  assert (select b.amount_open = 250000 and not b.bank_ready from public.guest_bill('07', g4) b),
+    'H7b guest_bill: 250.000 still owed, bank not ready';
   insert into public.restaurant_settings (name, bank_bin, account_no, account_name)
   values ('Phở Mây Kitchen', '970436', '0000000000', 'PHO MAY KITCHEN');
+  assert (select b.bank_ready from public.guest_bill('07', g4) b), 'H7c guest_bill: bank ready once settings exist';
 
   perform set_config('request.jwt.claims', json_build_object('sub', kit, 'role', 'authenticated')::text, true);
   execute 'set local role authenticated';

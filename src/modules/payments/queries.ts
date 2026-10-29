@@ -39,6 +39,18 @@ export async function getPayOptions(sessionId: string, guestId: string, people: 
 }
 
 /**
+ * 05 · what is still owed (bill − confirmed) and whether the restaurant takes VietQR at all, from
+ * guest_bill. No bank account → the guest pays at the counter. Callers have checked the guest cookie.
+ */
+export async function getGuestBill(tableCode: string, guestId: string) {
+  const { data, error } = await createAdminClient()
+    .rpc("guest_bill", { p_table_code: tableCode, p_guest: guestId })
+    .single();
+  if (error) throw error;
+  return { amountOpen: data.amount_open, bankReady: data.bank_ready };
+}
+
+/**
  * One payment of the guest on this phone (by the tt_guest cookie), with how the table's bill
  * stands. Works after the session closed too, so a guest who paid still sees 06 · Paid.
  */

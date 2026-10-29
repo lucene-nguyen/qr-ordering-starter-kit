@@ -6,7 +6,7 @@ import { formatVnd } from "@/lib/money";
 import { RefreshOnBroadcast } from "@/lib/realtime-refresh";
 import { PageNav } from "@/modules/orders/components/page-nav";
 import { PayForm } from "@/modules/payments/components/pay-form";
-import { getPayOptions } from "@/modules/payments/queries";
+import { getGuestBill, getPayOptions } from "@/modules/payments/queries";
 import { getGuest } from "@/modules/table-session/guest";
 import { getTableByCode } from "@/modules/table-session/queries";
 
@@ -30,8 +30,11 @@ export default async function PayPage({ params, searchParams }: Props) {
   if (!guest) redirect(`/t/${table.code}`); // 00 · Join or 00b
 
   const wantedPeople = Math.min(8, Math.max(2, Number(sp.people) || 2));
-  const options = await getPayOptions(guest.sessionId, guest.guestId, wantedPeople);
-  if (options.pendingId) redirect(`/t/${table.code}/pay/${options.pendingId}`); // one open request per guest
+  const [options, { amountOpen, bankReady }] = await Promise.all([
+    getPayOptions(guest.sessionId, guest.guestId, wantedPeople),
+    getGuestBill(table.code, guest.guestId),
+  ]);
+  if (bankReady && options.pendingId) redirect(`/t/${table.code}/pay/${options.pendingId}`); // one open request per guest
   // Once someone at the table split the bill, everyone pays a share.
   const mode = options.splitFixed || sp.mode === "share" ? "share" : "full";
   const people = options.splitPeople;
@@ -53,6 +56,16 @@ export default async function PayPage({ params, searchParams }: Props) {
           <p className="mx-4 rounded-md bg-surface p-4 text-muted">
             {options.bill === 0 ? "Nothing to pay yet – order something first." : "Everything left is already being paid or settled."}
           </p>
+        ) : !bankReady ? (
+          // No bank account yet: no VietQR request at all, so C2 has nothing to confirm by mistake.
+          <section className="mx-4 flex flex-col items-center gap-3 rounded-lg border border-border p-5 text-center">
+            <h2 className="text-title">Pay at the counter</h2>
+            <p className="text-caption text-muted">Bank transfer isn&apos;t set up yet. Our staff will take your payment.</p>
+            <div>
+              <p className="text-display tabular-nums text-brand-strong">{formatVnd(amountOpen)}</p>
+              <p className="text-caption text-muted">Still to pay</p>
+            </div>
+          </section>
         ) : (
           <>
             <nav aria-label="Payment mode" className="mx-4 flex gap-1 rounded-md bg-surface p-1">
@@ -115,7 +128,7 @@ export default async function PayPage({ params, searchParams }: Props) {
       </div>
 
       <div className="sticky bottom-0 flex flex-col gap-2.5 border-t border-border bg-bg px-4 pt-3.5 pb-7">
-        {options.open > 0 && amount !== null && <PayForm tableCode={table.code} mode={mode} people={people} />}
+        {bankReady && options.open > 0 && amount !== null && <PayForm tableCode={table.code} mode={mode} people={people} />}
         <Link href={`/t/${table.code}`} className="flex h-[52px] items-center justify-center rounded-md border border-border font-semibold hover:bg-surface focus-visible:outline-2 focus-visible:outline-brand">
           Back to menu
         </Link>
