@@ -130,12 +130,17 @@ Evidence: `docs/lessons/phase-5.md`. Release to prod: `docs/runbooks/phase-5-rel
 **Learning goals:** SQL aggregation, views and indexes; timezone-correct grouping (Asia/Ho_Chi_Minh); data visualisation.
 
 **Acceptance criteria**
-- [ ] Daily revenue matches the sum of paid orders for that day.
-- [ ] Reports load in under 2 seconds with a few thousand orders.
+- [x] Daily revenue matches the sum of paid orders for that day. – `supabase/tests/phase6.sql` AC1
+  (+ R1–R8 for midnight in Asia/Ho_Chi_Minh, force-closed and open tables); E2E table-flow (f).
+- [x] Reports load in under 2 seconds with a few thousand orders. – About 0,3 s with 3.080 seeded
+  orders on dev; the functions take 12–74 ms over 90 days (`docs/lessons/phase-6.md`, Performance).
 - [x] CSV export opens correctly in Excel / Google Sheets. – Revenue and dishes for 30 days opened
   by hand in both (2026-10-29): Vietnamese correct, columns split correctly, money columns are numbers
   that SUM. Automated: `csv.test.ts`, E2E `reports.spec.ts` (BOM, CRLF, totals match the page).
-- [ ] Only the owner role can view reports.
+- [x] Only the owner role can view reports. – `phase6.sql` N1/N2 (cashier, kitchen `NOT_ALLOWED`;
+  anon can't call); E2E: cashier and kitchen get O2b, cashier gets 403 on the CSV.
+
+Evidence: `docs/lessons/phase-6.md`. Release to prod: `docs/runbooks/phase-6-release.md`.
 
 **Decisions (ADR 0004):** revenue = confirmed payments of closed tables, on their closing day
 (Asia/Ho_Chi_Minh), including money confirmed before a force-close; what those tables still owed is

@@ -41,8 +41,16 @@ Supabase Auth (staff roles)        (orders, cart changes)
 4. Close table once settled (the owner may force-close with a reason). Closing ends the PIN and every
    guest cookie of the session, so a photographed QR cannot order any more.
 
-**Reports (Phase 6)**
-- SQL views aggregate paid sessions by day in `Asia/Ho_Chi_Minh`; owner-only via RLS.
+**Reports (Phase 6, ADR 0004)**
+1. O2 (`/staff/reports`, owner) calls `report_revenue` (current period, previous period, today),
+   `report_items` and `report_hours` in parallel with the staff member's session.
+   - The functions run as the caller and refuse anyone but the owner.
+   - Other roles get O2b.
+2. Revenue = confirmed payments of tables closed in the period, grouped by closing day, week or
+   month in `Asia/Ho_Chi_Minh`. The page uses the same zone to decide "today".
+3. "Export CSV" (`/staff/reports/export`, route handler, owner only) returns the same figures:
+   UTF-8 with BOM, CRLF, and formula injection blocked.
+4. No Realtime: the owner reloads or switches the period. Figures only change when a table closes.
 
 ## Trust boundaries
 
