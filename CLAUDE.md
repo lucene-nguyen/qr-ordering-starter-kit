@@ -25,7 +25,7 @@ This is a **learn-by-building** project and one of a series of domain starter ki
 | Jira | Epic **LEARNING-3** → Task **LEARNING-94** → Subtasks **LEARNING-95 … LEARNING-100** at https://lucenenguyen.atlassian.net. If the Atlassian MCP is available, read the subtask before starting and move it to In Progress / Done when appropriate. |
 | Architecture | `docs/architecture.md`, diagram `docs/architecture.drawio` |
 | Data model | `docs/data-model.md` (proposed schema + RLS plan) |
-| UI / UX | `docs/prototype/tabletap-prototype.html` – open it in a browser. It is the **source of truth for screens, copy and behaviour**. Map of screens → phases in `docs/prototype/README.md`. |
+| UI / UX | `docs/prototype/tabletap-prototype.html` – open it in a browser (also served at `/prototype`). The prototype is the original design reference. Where it differs from the app (marked ≠ app in `docs/prototype/README.md`), the app, `docs/decisions` (ADRs) and `docs/screens/app/` win. Do not change the app to match a ≠ app screen. Screen gallery with phases: `docs/prototype/README.md`. |
 | Decisions | `docs/decisions/` (ADRs) |
 | Supabase | Project **tabletap** (ref `sxwcsxyalzblvkhtlola`, region ap-southeast-1, Free plan). Keys in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`). |
 
@@ -68,7 +68,7 @@ supabase/              migrations and seed
 
 ## Conventions
 
-- **Language:** English for code, comments, commits, docs and UI copy (UI copy follows the prototype).
+- **Language:** English for code, comments, commits, docs and UI copy (UI copy follows the prototype, except on ≠ app screens).
 - **Money:** integer VND (`65000`), format with a shared helper as `65.000đ`. Never floats.
 - **Time:** store UTC (`timestamptz`); group and display in `Asia/Ho_Chi_Minh` (`APP_TIMEZONE`).
 - **Writes:** only through Server Actions. Validate input with Zod. Recompute prices and totals on the server; snapshot dish name and unit price into `order_items`.
@@ -84,7 +84,7 @@ supabase/              migrations and seed
 
 1. Every acceptance criterion for the phase in `docs/roadmap.md` is met and was checked.
 2. `npm run build`, `npm run lint` and `npm run typecheck` pass.
-3. Screens match the prototype (layout, copy, states).
+3. Screens match the prototype (layout, copy, states), except where it is marked ≠ app.
 4. Migrations are committed; nothing secret is committed.
 5. `docs/lessons/phase-N.md` is written; Jira subtask updated.
 

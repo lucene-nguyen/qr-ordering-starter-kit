@@ -68,6 +68,7 @@ Requires Node.js 22.18 or newer (or 23.6+): `npm test` runs the TypeScript unit 
 | `docs/data-model.md` | Supabase schema and RLS, per phase |
 | `docs/runbooks/` | Production release steps (Phases 5 and 6) |
 | `docs/prototype/` | Clickable UI prototype (`tabletap-prototype.html`, also at `/prototype`) and the screen gallery |
+| `docs/screens/app/` | Pictures of the real app (used above). Retake them on dev with `E2E_SCREENS=1 npx playwright test app-screens` |
 | `docs/decisions/` | Architecture decision records |
 | `docs/lessons/` | Lessons learned per phase |
 
