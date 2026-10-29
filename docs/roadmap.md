@@ -12,7 +12,14 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 
 ## Definition of Done (whole project)
 
-- [ ] End-to-end flow works: scan QR → order → kitchen sees it instantly → pay via VietQR → owner sees revenue.
+- [x] End-to-end flow works: scan QR → order → kitchen sees it instantly → pay via VietQR → owner sees revenue.
+  - **Production smoke test, 2026-10-29**, tables 05 and 01: QR → PIN join → order → the kitchen
+    gets it → payment → close table → it shows in O2 (Revenue Today 120.000đ).
+  - On prod the payment was **cash**, because prod has no bank account yet: guests are sent to the
+    counter.
+  - The VietQR step is verified on dev: E2E table-flow (c) has a split VietQR of 83.000đ, the cashier
+    confirms it, and the guest sees "Paid".
+  - On prod it can be checked once the real bank account is entered in O3 (see the last item below).
 - [ ] Deployed on Vercel with near-zero running cost (domain only).
 - [ ] Each phase has notes on the lessons learned (`docs/lessons/`).
 - [x] Separate Supabase projects for dev (`tabletap-dev`) and prod (`tabletap`); migrations go to dev first, prod only after approval – see `supabase/README.md`.
