@@ -75,6 +75,7 @@ supabase/              migrations and seed
 - **Guests are anonymous.** Every guest write must check an **open table session** via its token (Phase 5 hardens this; design for it from Phase 1).
 - **Order submission is idempotent** (client-generated idempotency key, unique in DB).
 - **Secrets:** only in `.env.local` / Vercel env. `SUPABASE_SECRET_KEY` is server-only and must never reach a Client Component.
+- **Staff accounts:** sign-ups are off on prod. A new staff member is created in Supabase Dashboard → Authentication → Add user, then gets a `staff_profiles` row (role) through SQL – see `docs/runbooks/add-staff.md`.
 - **Components:** Server Components by default; add `"use client"` only for interactivity. Mobile-first for the guest app (390 px), desktop/tablet for staff.
 - **Accessibility:** real buttons/links, labels on inputs, visible focus.
 - **Commits:** small, imperative, prefixed with the Jira key, e.g. `LEARNING-95: add table menu route`.

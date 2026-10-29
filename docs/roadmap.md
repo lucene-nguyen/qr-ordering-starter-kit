@@ -24,6 +24,8 @@ realtime, and the owner handles checkout and revenue reporting. Learn-by-buildin
 - [ ] Each phase has notes on the lessons learned (`docs/lessons/`).
 - [x] Separate Supabase projects for dev (`tabletap-dev`) and prod (`tabletap`); migrations go to dev first, prod only after approval – see `supabase/README.md`.
 - [ ] Before real guests: clean demo data from prod, enter the real menu and bank account, turn off public sign-ups.
+  - Sign-ups: turned off on prod 2026-10-29. New staff: `docs/runbooks/add-staff.md`.
+  - Still open: clean the demo data, enter the real menu, enter the bank account.
 
 ---
 
